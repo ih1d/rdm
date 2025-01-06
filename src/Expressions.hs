@@ -6,6 +6,10 @@ import Data.Text.Lazy (Text)
 import Data.Void (Void)
 import Numeric.Natural
 
+{- Module
+ - consists of name, declarations (type, values and/or axioms),
+ - and of a possible extension
+-}
 data Module = Module
     { moduleName :: Text
     , declarations :: NonEmpty Declaration
@@ -13,17 +17,27 @@ data Module = Module
     }
     deriving (Show)
 
+{- Declaration
+ - TypeDecl consists of list of Type declarations
+ - ValueDecl consists of list of Value declarations
+ - AxiomDecl consists of list of Axiom declarations
+-}
 data Declaration
     = TypeDecl [TypeDeclaration]
     | ValueDecl [ValueDeclaration]
     | AxiomDecl [AxiomDeclaration]
     deriving (Show)
 
+{- TypeDeclaration
+ - It is a sort with a name
+ - or an ADT with a name and a type expression
+-}
 data TypeDeclaration
     = Sort Text
     | AbstractType Text TypeExpr
     deriving (Show)
 
+{- Native Types -}
 data Type
     = NatT
     | BoolT
@@ -35,6 +49,13 @@ data Type
     | AdtT Text
     deriving (Show, Eq)
 
+{- TypeExpr
+ - consists of a Type
+ - a set type
+ - a product: t1 >< t2
+ - a function: t1 -> t2
+ - an application: func(params)
+-}
 data TypeExpr
     = TypeTE Type
     | SetTE Type
@@ -43,20 +64,47 @@ data TypeExpr
     | AppTE Text [ValueExpr] Text ValueExpr ValueExpr
     deriving (Show)
 
+{- ValueDecl
+ - an identifier
+ - and a type expression
+-}
 data ValueDeclaration = ValueDeclaration
     { valueIdentifier :: Text
     , valueTypeExpr :: TypeExpr
     }
     deriving (Show)
 
-type TypingList = NonEmpty ValueDeclaration -- typing same as a value declaration
+-- typing same as a value declaration
+type TypingList = NonEmpty ValueDeclaration 
 
+{- AxiomDeclaration
+ - a possible naming convention
+ - and a value expression
+-}
 data AxiomDeclaration = AxiomDeclaration
     { axiomNaming :: Maybe Text
     , axiomValueExpr :: ValueExpr
     }
     deriving (Show)
 
+{- ValueExpr
+ - Boolean expr
+ - Identifier
+ - set expression
+ - if statement
+ - binary operator
+ - unary operator
+ - chaos expression
+ - quantifier 
+ - integer
+ - natural
+ - real
+ - char
+ - string/text
+ - unit
+ - product
+ - application
+-}
 data ValueExpr
     = BoolVE Bool
     | IdVE Text
@@ -77,6 +125,7 @@ data ValueExpr
     | FuncVE TypingList ValueExpr
     deriving (Show)
 
+{- Binary operators -}
 data ValueBinOp
     = Func
     | Equal
@@ -99,6 +148,7 @@ data ValueBinOp
     | Exp
     deriving (Show)
 
+{- Unary operators -}
 data ValueUnOp
     = Not
     | Abs
@@ -116,5 +166,6 @@ data ValueUnOp
     | Pre
     deriving (Show)
 
+{- quantifiers -}
 data Quantifier = Forall | Exists | ExistsOne
     deriving (Show)

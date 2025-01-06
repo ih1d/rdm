@@ -1,0 +1,12 @@
+DATABASE =
+class
+    type
+        Person,
+        Database = Person-set
+    value
+        empty : Database,
+        register : Person >< Database -> Database,
+        check : Person >< Database -> Bool
+    axiom
+        empty is {}
+end
