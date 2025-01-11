@@ -8,5 +8,6 @@ class
         register : Person >< Database -> Database,
         check : Person >< Database -> Bool
     axiom
-        empty is {}
+        empty is {},
+        forall p : Person, db : Database :- register(p,db) is {p} union db
 end

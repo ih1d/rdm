@@ -3,9 +3,9 @@ class
     type
         List
     value
-        empty : List
-        add : Int >< List -> List
-        head : List -~-> Int
+        empty : List,
+        add : Int >< List -> List,
+        head : List -~-> Int,
         tail : List -~-> Int
     axiom forall i : Int, l : List :-
         [head_add]

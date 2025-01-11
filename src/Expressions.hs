@@ -1,5 +1,6 @@
 module Expressions where
 
+import Data.Set (Set)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Proxy
 import Data.Text.Lazy (Text)
@@ -47,7 +48,7 @@ data Type
     | TextT
     | UnitT
     | AdtT Text
-    deriving (Show, Eq)
+    deriving (Show, Eq, Ord)
 
 {- TypeExpr
  - consists of a Type
@@ -59,10 +60,11 @@ data Type
 data TypeExpr
     = TypeTE Type
     | SetTE Type
+    | InfSetTE Type
     | ProductTE [TypeExpr]
     | FuncTE TypeExpr TypeExpr
     | AppTE Text [ValueExpr] Text ValueExpr ValueExpr
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 {- ValueDecl
  - an identifier
@@ -72,7 +74,7 @@ data ValueDeclaration = ValueDeclaration
     { valueIdentifier :: Text
     , valueTypeExpr :: TypeExpr
     }
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 -- typing same as a value declaration
 type TypingList = NonEmpty ValueDeclaration 
@@ -108,7 +110,7 @@ data AxiomDeclaration = AxiomDeclaration
 data ValueExpr
     = BoolVE Bool
     | IdVE Text
-    | SetVE
+    | SetVE (Set ValueExpr)
     | If ValueExpr ValueExpr (Maybe [(ValueExpr, ValueExpr)]) ValueExpr
     | BinOpVE ValueBinOp ValueExpr ValueExpr
     | UnaryOpVE ValueUnOp ValueExpr
@@ -123,7 +125,7 @@ data ValueExpr
     | ProductVE [ValueExpr]
     | AppVE Text [ValueExpr]
     | FuncVE TypingList ValueExpr
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 {- Binary operators -}
 data ValueBinOp
@@ -146,7 +148,7 @@ data ValueBinOp
     | Div
     | Rem
     | Exp
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 {- Unary operators -}
 data ValueUnOp
@@ -164,8 +166,8 @@ data ValueUnOp
     | Rng
     | Post
     | Pre
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 {- quantifiers -}
 data Quantifier = Forall | Exists | ExistsOne
-    deriving (Show)
+    deriving (Eq, Ord, Show)

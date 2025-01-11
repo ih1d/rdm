@@ -11,7 +11,7 @@ run input =
     case parser input of
         Left err -> print err
         Right m -> print m
-
+       
 main :: IO ()
 main = do
     args <- getArgs

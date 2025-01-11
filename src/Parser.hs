@@ -2,6 +2,7 @@
 
 module Parser where
 
+import Data.Set (empty, fromList)
 import Control.Monad (void)
 import Data.Functor.Identity (Identity)
 import Data.List.NonEmpty (nonEmpty)
@@ -104,13 +105,19 @@ rslTypeSetExpr = do
     rslReservedOp "-set"
     pure $ SetTE rtype
 
+rslTypeInfsetExpr :: Parser TypeExpr
+rslTypeInfsetExpr = do
+    rtype <- rslType
+    rslReservedOp "-infset"
+    pure $ SetTE rtype
+
 rslProductExpr :: Parser TypeExpr
 rslProductExpr = do
     rslTypes <- rslTypingExpr `sepBy1` rslReservedOp "><"
     if length rslTypes == 1 then parserFail ">< expects from and to types" else pure $ ProductTE rslTypes
 
 rslSimpleTypeExpr :: Parser TypeExpr
-rslSimpleTypeExpr = try rslTypeSetExpr <|> rslTypingExpr
+rslSimpleTypeExpr = try rslTypeInfsetExpr <|> try rslTypeSetExpr <|> rslTypingExpr
 
 rslFunctionTypeExpr :: Parser TypeExpr
 rslFunctionTypeExpr = do
@@ -148,11 +155,28 @@ rslUnitValueExpr = UnitVE <$> void (rslLexeme $ string "()")
 rslChaosValueExpr :: Parser ValueExpr
 rslChaosValueExpr = ChaosVE <$> ((Proxy @Void) <$ rslReserved "chaos")
 
+rslTermValueExpr :: Parser ValueExpr
+rslTermValueExpr = 
+    rslBoolValueExpr 
+    <|> rslIntValueExpr 
+    <|> rslNatValueExpr 
+    <|> rslRealValueExpr
+    <|> rslCharValueExpr
+    <|> rslTextValueExpr
+    <|> rslUnitValueExpr
+    <|> rslChaosValueExpr
+
 rslIdValueExpr :: Parser ValueExpr
 rslIdValueExpr = IdVE <$> rslLexeme rslIdentifier
 
-rslEmptySetValueExpr :: Parser ValueExpr
-rslEmptySetValueExpr = SetVE <$ rslLexeme (string "{}")
+rslSetValueExpr :: Parser ValueExpr
+rslSetValueExpr = do
+    void $ rslLexeme (char '{')
+    vals <- rslCommaSep rslTermValueExpr
+    void $ rslLexeme (char '}')
+    case vals of
+        [] -> pure $ SetVE empty
+        vals' -> pure $ SetVE (fromList vals')
 
 rslTypingList :: Parser TypingList
 rslTypingList = do
@@ -218,7 +242,7 @@ table =
     ]
 
 valueExprTerms :: Parser ValueExpr
-valueExprTerms = rslIdValueExpr <|> rslEmptySetValueExpr
+valueExprTerms = rslTermValueExpr <|> rslIdValueExpr <|> rslSetValueExpr
 
 rslSimpleValueExpr :: Parser ValueExpr
 rslSimpleValueExpr = buildExpressionParser table valueExprTerms
@@ -236,7 +260,7 @@ rslFuncAppValueExpr = do
     AppVE funId <$> between (char '(') (char ')') (rslCommaSep valueExprTerms)
 
 valueExpr :: Parser ValueExpr
-valueExpr = rslFuncAppValueExpr
+valueExpr = rslQuantValueExpr <|> rslFuncAppValueExpr
 
 rslIfValueExpr :: Parser ValueExpr
 rslIfValueExpr = do
@@ -281,7 +305,7 @@ rslValueDeclarations = do
 rslAxiomDef :: Parser AxiomDeclaration
 rslAxiomDef = do
     anaming <- optionMaybe $ rslLexeme rslAxiomNaming
-    AxiomDeclaration anaming <$> rslSimpleValueExpr
+    AxiomDeclaration anaming <$> valueExpr
   where
     rslAxiomNaming :: Parser Text
     rslAxiomNaming = char '[' *> rslIdentifier <* char ']'
