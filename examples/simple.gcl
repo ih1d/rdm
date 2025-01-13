@@ -1,0 +1,6 @@
+proc example3(x, y : i64, z : u64)
+var v, w : i32
+var r : u32
+begin
+    x + y
+end.

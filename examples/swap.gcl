@@ -1,0 +1,7 @@
+proc swap(x, y : i64)
+var tmp : i64
+begin
+    tmp := x
+    x := y
+    y := tmp
+end.

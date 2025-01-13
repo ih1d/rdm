@@ -1,0 +1,7 @@
+proc max(x, y : i64)
+begin
+    if x > y -> 
+    | 1
+    | 0
+    fi
+end.
