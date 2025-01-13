@@ -1,5 +1,6 @@
 module Expressions where
 
+import GHC.Arr (Array)
 import Data.Text.Lazy (Text)
 import Data.Word (Word32)
 import Data.List.NonEmpty (NonEmpty)
@@ -26,15 +27,20 @@ data Proc = Proc
  - 64 bit unsigned integer
  -}
 data Type
-    = BoolT
+    = ArrayT
+    | BoolT
     | I64T
     | I32T
     | U64T
     | U32T
-    deriving (Show, Eq, Ord)
+    | F64T
+    | F32T
+    deriving (Show)
 
 {- An expression is:
  - boolean 
+ - number
+ - array
  - identifier
  - if statement
  - binary operator
@@ -43,18 +49,32 @@ data Type
  - unsigned integer
 -}
 data Expr
-    = BoolE Bool
+    = ArrayE (Array Int Value) 
+    | BoolE Bool
     | I64E Int
     | I32E Int32
     | U64E Word
     | U32E Word32
+    | F64E Double
+    | F32E Float
     | IdE Text
     | IfE Expr (NonEmpty Expr)
-    | Do Expr [Expr]
+    | DoE Expr [Expr]
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
-    deriving (Eq, Ord, Show)
+    deriving (Show)
 
+data Value
+    = ArrayV (Array Int Value)
+    | BoolV Bool 
+    | I64V Int
+    | I32V Int32
+    | U64V Word
+    | U32V Word32
+    | F64V Double
+    | F32V Float
+    deriving (Show)
+ 
 {- Binary operators -}
 data BinOp
     = Equal
@@ -72,8 +92,8 @@ data BinOp
     | Div
     | Exp
     | Assign
-    deriving (Eq, Ord, Show)
+    deriving (Show)
 
 {- Unary operators -}
 data UnOp = Not
-    deriving (Eq, Ord, Show)
+    deriving (Show)

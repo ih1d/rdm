@@ -42,6 +42,12 @@ gclWord = fromInteger <$> integer gclLexer
 gclWord32 :: Parser Word32
 gclWord32 = fromInteger <$> integer gclLexer
 
+gclDouble :: Parser Double
+gclDouble = float gclLexer
+
+gclFloat :: Parser Float
+gclFloat = realToFrac <$> float gclLexer
+
 gclParens :: Parser a -> Parser a
 gclParens = parens gclLexer
 
@@ -78,6 +84,8 @@ gclType =
         <|> (I32T <$ gclReserved "i32")
         <|> (U64T <$ gclReserved "u64")
         <|> (U32T <$ gclReserved "u32")
+        <|> (F64T <$ gclReserved "f64")
+        <|> (F32T <$ gclReserved "f32")
 
 -- parse a boolean value
 gclBoolExpr :: Parser Expr
@@ -101,6 +109,14 @@ gclU64Expr = U64E <$> gclLexeme gclWord
 gclU32Expr :: Parser Expr
 gclU32Expr = U32E <$> gclLexeme gclWord32
 
+-- parse an f64 value
+gclF64Expr :: Parser Expr
+gclF64Expr = F64E <$> gclLexeme gclDouble
+
+-- parse an f32 value
+gclF32Expr :: Parser Expr
+gclF32Expr = F32E <$> gclLexeme gclFloat
+
 -- parse an terminal expression
 gclTermExpr :: Parser Expr
 gclTermExpr = 
@@ -110,6 +126,8 @@ gclTermExpr =
     <|> gclI32Expr 
     <|> gclU64Expr 
     <|> gclU32Expr 
+    <|> gclF64Expr 
+    <|> gclF32Expr 
 
 -- parse an identifier
 gclIdExpr :: Parser Expr
@@ -172,9 +190,19 @@ gclIfExpr = do
     gclReserved "fi"
     pure $ IfE cnd thns
 
+-- parse do expression
+gclDoExpr :: Parser Expr
+gclDoExpr = do
+    gclReserved "do"
+    cnd <- gclTerms
+    gclReserved "->"
+    exprs <- many gclExpr
+    gclReserved "od"
+    pure $ DoE cnd exprs
+
 -- parse an expression
 gclExpr :: Parser Expr
-gclExpr = gclIfExpr <|> gclTerms 
+gclExpr = gclIfExpr <|> gclDoExpr <|> gclTerms 
 
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]
