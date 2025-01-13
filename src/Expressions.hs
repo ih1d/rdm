@@ -27,7 +27,7 @@ data Proc = Proc
  - 64 bit unsigned integer
  -}
 data Type
-    = ArrayT
+    = ArrayT Type
     | BoolT
     | I64T
     | I32T
@@ -49,7 +49,7 @@ data Type
  - unsigned integer
 -}
 data Expr
-    = ArrayE (Array Int Value) 
+    = ArrayMemE Text Expr
     | BoolE Bool
     | I64E Int
     | I32E Int32
@@ -95,5 +95,7 @@ data BinOp
     deriving (Show)
 
 {- Unary operators -}
-data UnOp = Not
+data UnOp 
+    = Not
+    | ArrLen
     deriving (Show)

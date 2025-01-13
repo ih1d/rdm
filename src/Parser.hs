@@ -17,6 +17,7 @@ import Text.Parsec (
     oneOf,
     sepBy,
     parse,
+    try,
     (<|>),
  )
 import Text.Parsec.Expr (Assoc (..), Operator (..), OperatorTable, buildExpressionParser)
@@ -86,6 +87,14 @@ gclType =
         <|> (U32T <$ gclReserved "u32")
         <|> (F64T <$ gclReserved "f64")
         <|> (F32T <$ gclReserved "f32")
+        <|> arrayType
+    where
+        arrayType = do
+            gclReserved "array"
+            gclReserved "of"
+            t <- gclType
+            pure $ ArrayT t
+            
 
 -- parse a boolean value
 gclBoolExpr :: Parser Expr
@@ -117,10 +126,20 @@ gclF64Expr = F64E <$> gclLexeme gclDouble
 gclF32Expr :: Parser Expr
 gclF32Expr = F32E <$> gclLexeme gclFloat
 
+-- parse accessing array member
+gclArrayMem :: Parser Expr
+gclArrayMem = do
+    arr <- gclIdentifier
+    void $ gclLexeme (char '[')
+    idx <- gclTerms
+    void $ gclLexeme (char ']')
+    pure $ ArrayMemE arr idx
+
 -- parse an terminal expression
 gclTermExpr :: Parser Expr
 gclTermExpr = 
-    gclIdExpr
+    try gclArrayMem
+    <|> gclIdExpr
     <|> gclBoolExpr 
     <|> gclI64Expr 
     <|> gclI32Expr 
@@ -145,6 +164,7 @@ table :: OperatorTable Text () Identity Expr
 table =
     [
         [ gclUnaryOp "~" (UnaryOpE Not)
+        , gclUnaryOp "#" (UnaryOpE ArrLen)
         ]
     ,
         [ gclBinaryOp "**" (BinOpE Exp) AssocNone
