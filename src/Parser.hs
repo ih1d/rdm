@@ -15,7 +15,6 @@ import Text.Parsec (
     many,
     many1,
     oneOf,
-    sepBy,
     parse,
     try,
     (<|>),
@@ -202,13 +201,23 @@ gclIfExpr = do
     cnd <- gclTerms
     gclReservedOp "->"
     void $ gclLexeme (char '|')
-    mthns <- gclExpr `sepBy` (gclLexeme (char '|'))
-    thns <-
+    mthns <- many1 gclExpr 
+    thns <- 
         case nonEmpty mthns of
-            Nothing -> error "expecting one or more expressions"
-            Just thns' -> pure thns'
+            Nothing -> error "expecting one or more expressions after if"
+            Just thns -> pure thns
+    void $ gclLexeme (char '|')
+    melses <- many1 gclExpr
+    elses <- 
+        case nonEmpty melses of
+            Nothing -> error "expecting one or more expressions after if"
+            Just elses -> pure elses
     gclReserved "fi"
-    pure $ IfE cnd thns
+    pure $ IfE cnd thns elses
+
+-- parse multiway if expression
+gclMultiIfExpr :: Parser Expr
+gclMultiIfExpr = undefined
 
 -- parse do expression
 gclDoExpr :: Parser Expr

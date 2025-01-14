@@ -1,7 +1,9 @@
 proc max(x, y : i64)
 begin
     if x > y -> 
-    | 1
-    | 0
+        | x := x + 1
+          x
+        | y := y - 1
+          y
     fi
 end.
