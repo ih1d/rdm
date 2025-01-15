@@ -1,18 +1,18 @@
 module Expressions where
 
-import GHC.Arr (Array)
+import Data.Int (Int32)
+import Data.List.NonEmpty (NonEmpty)
 import Data.Text.Lazy (Text)
 import Data.Word (Word32)
-import Data.List.NonEmpty (NonEmpty)
-import Data.Int (Int32)
+import GHC.Arr (Array)
 
 {- Procedure
- - consists of name, 
+ - consists of name,
  - a list of parameters,
  - maybe local variables, and
  - body
 -}
-data Proc = Proc 
+data Proc = Proc
     { procName :: Text
     , parameters :: [(Text, Type)]
     , localVariables :: [(Text, Type)]
@@ -25,6 +25,10 @@ data Proc = Proc
  - 64 bit signed integer
  - 32 bit signed integer
  - 64 bit unsigned integer
+ - 64 bit floating point number
+ - 32 bit floating point number
+ - character
+ - string
  -}
 data Type
     = ArrayT Type
@@ -40,7 +44,7 @@ data Type
     deriving (Show)
 
 {- An expression is:
- - boolean 
+ - boolean
  - number
  - array
  - identifier
@@ -71,7 +75,7 @@ data Expr
 
 data Value
     = ArrayV (Array Int Value)
-    | BoolV Bool 
+    | BoolV Bool
     | I64V Int
     | I32V Int32
     | U64V Word
@@ -79,7 +83,7 @@ data Value
     | F64V Double
     | F32V Float
     deriving (Show)
- 
+
 {- Binary operators -}
 data BinOp
     = Equal
@@ -100,7 +104,7 @@ data BinOp
     deriving (Show)
 
 {- Unary operators -}
-data UnOp 
+data UnOp
     = Not
     | ArrLen
     deriving (Show)

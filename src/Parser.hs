@@ -1,13 +1,17 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use tuple-section" #-}
+
 module Parser (parser) where
 
-import Expressions
-import Language
 import Control.Monad (void)
 import Data.Functor.Identity (Identity)
-import Data.Word (Word32)
-import Data.List.NonEmpty (NonEmpty, nonEmpty, fromList)
 import Data.Int (Int32)
+import Data.List.NonEmpty (NonEmpty, fromList, nonEmpty)
 import Data.Text.Lazy (Text, pack)
+import Data.Word (Word32)
+import Expressions
+import Language
 import Text.Parsec (
     ParseError,
     char,
@@ -15,8 +19,8 @@ import Text.Parsec (
     many,
     many1,
     oneOf,
-    parse,
     optionMaybe,
+    parse,
     try,
     (<|>),
  )
@@ -81,9 +85,10 @@ whitespace =
         ]
   where
     simpleWhitespace = void $ many1 (oneOf " \t\n")
+
 -- parser helpers --
 
--- parse a type 
+-- parse a type
 gclType :: Parser Type
 gclType =
     (BoolT <$ gclReserved "bool")
@@ -96,13 +101,11 @@ gclType =
         <|> (CharT <$ gclReserved "chr")
         <|> (StrT <$ gclReserved "str")
         <|> arrayType
-    where
-        arrayType = do
-            gclReserved "array"
-            gclReserved "of"
-            t <- gclType
-            pure $ ArrayT t
-            
+  where
+    arrayType = do
+        gclReserved "array"
+        gclReserved "of"
+        ArrayT <$> gclType
 
 -- parse a boolean value
 gclBoolExpr :: Parser Expr
@@ -153,18 +156,18 @@ gclArrayMem = do
 
 -- parse an terminal expression
 gclTermExpr :: Parser Expr
-gclTermExpr = 
+gclTermExpr =
     try gclArrayMem
-    <|> gclIdExpr
-    <|> gclBoolExpr 
-    <|> gclI64Expr 
-    <|> gclI32Expr 
-    <|> gclU64Expr 
-    <|> gclU32Expr 
-    <|> gclF64Expr 
-    <|> gclF32Expr 
-    <|> gclCharExpr
-    <|> gclStrExpr
+        <|> gclIdExpr
+        <|> gclBoolExpr
+        <|> gclI64Expr
+        <|> gclI32Expr
+        <|> gclU64Expr
+        <|> gclU32Expr
+        <|> gclF64Expr
+        <|> gclF32Expr
+        <|> gclCharExpr
+        <|> gclStrExpr
 
 -- parse an identifier
 gclIdExpr :: Parser Expr
@@ -211,7 +214,7 @@ table =
 
 -- parse term expressions
 gclTerms :: Parser Expr
-gclTerms = buildExpressionParser table gclTermExpr 
+gclTerms = buildExpressionParser table gclTermExpr
 
 -- parse if expression
 gclIfExpr :: Parser Expr
@@ -220,38 +223,35 @@ gclIfExpr = do
     cnd <- gclTerms
     gclReservedOp "->"
     gclReservedOp "|"
-    mthns <- many1 gclExpr 
-    thns <- 
+    mthns <- many1 gclExpr
+    thns <-
         case nonEmpty mthns of
             Nothing -> error "expecting one or more expressions after if"
             Just thns -> pure thns
     elsifs <- optionMaybe $ many gclElsIfExpr
-    elses <- optionMaybe gclElseExpr 
+    elses <- optionMaybe gclElseExpr
     gclReserved "fi"
     pure $ IfE cnd thns elsifs elses
-    where
-        gclElseExpr :: Parser (NonEmpty Expr)
-        gclElseExpr = do
-            gclReserved "|"
-            melses <- many1 gclExpr
-            elses <- 
-                case nonEmpty melses of
-                    Nothing -> error "expecting one or more expressions after if"
-                    Just elses -> pure elses
-            pure elses
-        gclElsIfExpr :: Parser (Expr, NonEmpty Expr)
-        gclElsIfExpr = do
-            gclReservedOp "||"
-            cnd <- gclTerms
-            gclReservedOp "->"
-            gclReservedOp "|"
-            mthns <- many1 gclExpr
-            thns <- 
-                case nonEmpty mthns of
-                    Nothing -> error "expecting one or more expressions elseif"
-                    Just thns' -> pure thns'
-            pure (cnd, thns)
-        
+  where
+    gclElseExpr :: Parser (NonEmpty Expr)
+    gclElseExpr = do
+        gclReserved "|"
+        melses <- many1 gclExpr
+        case nonEmpty melses of
+            Nothing -> error "expecting one or more expressions after if"
+            Just elses -> pure elses
+    gclElsIfExpr :: Parser (Expr, NonEmpty Expr)
+    gclElsIfExpr = do
+        gclReservedOp "||"
+        cnd <- gclTerms
+        gclReservedOp "->"
+        gclReservedOp "|"
+        mthns <- many1 gclExpr
+        thns <-
+            case nonEmpty mthns of
+                Nothing -> error "expecting one or more expressions elseif"
+                Just thns' -> pure thns'
+        pure (cnd, thns)
 
 -- parse do expression
 gclDoExpr :: Parser Expr
@@ -269,7 +269,7 @@ gclAppExpr = do
     pname <- gclIdentifier
     void $ gclLexeme (char '(')
     mparams <- gclCommaSep gclTerms
-    params <- 
+    params <-
         case mparams of
             [] -> pure Nothing
             params -> pure $ Just (fromList params)
@@ -278,16 +278,16 @@ gclAppExpr = do
 
 -- parse an expression
 gclExpr :: Parser Expr
-gclExpr = gclAppExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms 
+gclExpr = gclAppExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
 
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]
-parseLocalVariables = do    
+parseLocalVariables = do
     gclReserved "var"
     vars <- gclCommaSep gclIdentifier
     gclReservedOp ":"
     t <- gclType
-    pure $ map (\x -> (x,t)) vars
+    pure $ map (\x -> (x, t)) vars
 
 -- parse a varaible typing
 gclVariableTyping :: Parser [(Text, Type)]
@@ -295,7 +295,7 @@ gclVariableTyping = do
     vars <- gclCommaSep gclIdentifier
     gclReservedOp ":"
     t <- gclType
-    pure $ map (\x -> (x,t)) vars
+    pure $ map (\x -> (x, t)) vars
 
 -- parse formal parameters
 parseFormalParams :: Parser [(Text, Type)]
@@ -310,11 +310,11 @@ parseProc :: Parser Proc
 parseProc = do
     gclReserved "proc"
     pname <- gclIdentifier
-    fparams <- parseFormalParams   
+    fparams <- parseFormalParams
     mlocal <- concat <$> many parseLocalVariables
     gclReserved "begin"
     mexprs <- many1 gclExpr
-    exprs <- 
+    exprs <-
         case nonEmpty mexprs of
             Nothing -> error "Failed parsing body"
             Just exprs' -> pure exprs'
@@ -324,4 +324,3 @@ parseProc = do
 
 parser :: Text -> Either ParseError Proc
 parser = parse parseProc "gcl"
-
