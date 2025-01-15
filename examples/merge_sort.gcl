@@ -24,4 +24,5 @@ begin
         || arr[k] = rarr[j] -> 
             | j := j + 1
         fi
+    od
 end.

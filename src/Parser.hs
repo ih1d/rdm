@@ -5,7 +5,7 @@ import Language
 import Control.Monad (void)
 import Data.Functor.Identity (Identity)
 import Data.Word (Word32)
-import Data.List.NonEmpty (nonEmpty)
+import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Data.Int (Int32)
 import Data.Text.Lazy (Text, pack)
 import Text.Parsec (
@@ -16,6 +16,7 @@ import Text.Parsec (
     many1,
     oneOf,
     parse,
+    optionMaybe,
     try,
     (<|>),
  )
@@ -200,24 +201,39 @@ gclIfExpr = do
     gclReserved "if"
     cnd <- gclTerms
     gclReservedOp "->"
-    void $ gclLexeme (char '|')
+    gclReservedOp "|"
     mthns <- many1 gclExpr 
     thns <- 
         case nonEmpty mthns of
             Nothing -> error "expecting one or more expressions after if"
             Just thns -> pure thns
-    void $ gclLexeme (char '|')
-    melses <- many1 gclExpr
-    elses <- 
-        case nonEmpty melses of
-            Nothing -> error "expecting one or more expressions after if"
-            Just elses -> pure elses
+    elsifs <- optionMaybe $ many gclElsIfExpr
+    elses <- optionMaybe gclElseExpr 
     gclReserved "fi"
-    pure $ IfE cnd thns elses
-
--- parse multiway if expression
-gclMultiIfExpr :: Parser Expr
-gclMultiIfExpr = undefined
+    pure $ IfE cnd thns elsifs elses
+    where
+        gclElseExpr :: Parser (NonEmpty Expr)
+        gclElseExpr = do
+            gclReserved "|"
+            melses <- many1 gclExpr
+            elses <- 
+                case nonEmpty melses of
+                    Nothing -> error "expecting one or more expressions after if"
+                    Just elses -> pure elses
+            pure elses
+        gclElsIfExpr :: Parser (Expr, NonEmpty Expr)
+        gclElsIfExpr = do
+            gclReservedOp "||"
+            cnd <- gclTerms
+            gclReservedOp "->"
+            gclReservedOp "|"
+            mthns <- many1 gclExpr
+            thns <- 
+                case nonEmpty mthns of
+                    Nothing -> error "expecting one or more expressions elseif"
+                    Just thns' -> pure thns'
+            pure (cnd, thns)
+        
 
 -- parse do expression
 gclDoExpr :: Parser Expr

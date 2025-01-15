@@ -58,8 +58,7 @@ data Expr
     | F64E Double
     | F32E Float
     | IdE Text
-    | IfE Expr (NonEmpty Expr) (NonEmpty Expr)
-    | MultiIfE Expr (NonEmpty Expr)
+    | IfE Expr (NonEmpty Expr) (Maybe [(Expr, NonEmpty Expr)]) (Maybe (NonEmpty Expr))
     | DoE Expr [Expr]
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
