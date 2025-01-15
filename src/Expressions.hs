@@ -35,6 +35,8 @@ data Type
     | U32T
     | F64T
     | F32T
+    | CharT
+    | StrT
     deriving (Show)
 
 {- An expression is:
@@ -57,9 +59,12 @@ data Expr
     | U32E Word32
     | F64E Double
     | F32E Float
+    | CharE Char
+    | StrE Text
     | IdE Text
     | IfE Expr (NonEmpty Expr) (Maybe [(Expr, NonEmpty Expr)]) (Maybe (NonEmpty Expr))
     | DoE Expr [Expr]
+    | AppE Text (Maybe (NonEmpty Expr))
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
     deriving (Show)

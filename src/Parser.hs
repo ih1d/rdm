@@ -5,7 +5,7 @@ import Language
 import Control.Monad (void)
 import Data.Functor.Identity (Identity)
 import Data.Word (Word32)
-import Data.List.NonEmpty (NonEmpty, nonEmpty)
+import Data.List.NonEmpty (NonEmpty, nonEmpty, fromList)
 import Data.Int (Int32)
 import Data.Text.Lazy (Text, pack)
 import Text.Parsec (
@@ -49,6 +49,12 @@ gclDouble = float gclLexer
 gclFloat :: Parser Float
 gclFloat = realToFrac <$> float gclLexer
 
+gclChar :: Parser Char
+gclChar = charLiteral gclLexer
+
+gclStr :: Parser Text
+gclStr = pack <$> stringLiteral gclLexer
+
 gclParens :: Parser a -> Parser a
 gclParens = parens gclLexer
 
@@ -87,6 +93,8 @@ gclType =
         <|> (U32T <$ gclReserved "u32")
         <|> (F64T <$ gclReserved "f64")
         <|> (F32T <$ gclReserved "f32")
+        <|> (CharT <$ gclReserved "chr")
+        <|> (StrT <$ gclReserved "str")
         <|> arrayType
     where
         arrayType = do
@@ -126,6 +134,14 @@ gclF64Expr = F64E <$> gclLexeme gclDouble
 gclF32Expr :: Parser Expr
 gclF32Expr = F32E <$> gclLexeme gclFloat
 
+-- parse a char
+gclCharExpr :: Parser Expr
+gclCharExpr = CharE <$> gclLexeme gclChar
+
+-- parse a string
+gclStrExpr :: Parser Expr
+gclStrExpr = StrE <$> gclLexeme gclStr
+
 -- parse accessing array member
 gclArrayMem :: Parser Expr
 gclArrayMem = do
@@ -147,6 +163,8 @@ gclTermExpr =
     <|> gclU32Expr 
     <|> gclF64Expr 
     <|> gclF32Expr 
+    <|> gclCharExpr
+    <|> gclStrExpr
 
 -- parse an identifier
 gclIdExpr :: Parser Expr
@@ -245,9 +263,22 @@ gclDoExpr = do
     gclReserved "od"
     pure $ DoE cnd exprs
 
+-- parse an proc application
+gclAppExpr :: Parser Expr
+gclAppExpr = do
+    pname <- gclIdentifier
+    void $ gclLexeme (char '(')
+    mparams <- gclCommaSep gclTerms
+    params <- 
+        case mparams of
+            [] -> pure Nothing
+            params -> pure $ Just (fromList params)
+    void $ gclLexeme (char ')')
+    pure $ AppE pname params
+
 -- parse an expression
 gclExpr :: Parser Expr
-gclExpr = gclIfExpr <|> gclDoExpr <|> gclTerms 
+gclExpr = gclAppExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms 
 
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]

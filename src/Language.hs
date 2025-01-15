@@ -68,6 +68,13 @@ gclKeywords =
     , "true"
     , "false"
     , "var"
+    , "bool"
+    , "i64"
+    , "i32"
+    , "u64"
+    , "u32"
+    , "chr"
+    , "str"
     ]
 
 gclLexer :: GenTokenParser Text st Identity
