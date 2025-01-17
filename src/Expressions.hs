@@ -6,6 +6,9 @@ import Data.Text.Lazy (Text)
 import Data.Word (Word32)
 import GHC.Arr (Array)
 
+{- A program is a list of procedures -}
+type Program = [Proc]
+
 {- Procedure
  - consists of name,
  - a list of parameters,
@@ -68,7 +71,7 @@ data Expr
     | IdE Text
     | IfE Expr (NonEmpty Expr) (Maybe [(Expr, NonEmpty Expr)]) (Maybe (NonEmpty Expr))
     | DoE Expr [Expr]
-    | AppE Text (Maybe (NonEmpty Expr))
+    | AppE Text [Expr]
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
     deriving (Show)
@@ -82,6 +85,7 @@ data Value
     | U32V Word32
     | F64V Double
     | F32V Float
+    | None
     deriving (Show)
 
 {- Binary operators -}
@@ -99,6 +103,7 @@ data BinOp
     | Sub
     | Mul
     | Div
+    | Mod
     | Exp
     | Assign
     deriving (Show)

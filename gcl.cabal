@@ -21,14 +21,15 @@ library
         warnings
     exposed-modules:
         Parser
+        Semantics
     other-modules:
         Language
         Expressions
+        Error
     -- other-extensions:
     build-depends:    base >=4 && <5
                     , parsec
                     , transformers
-                    , containers
                     , mtl
                     , text
     hs-source-dirs:   src

@@ -1,6 +1,6 @@
 proc example3(x, y : i64, z : u64)
-var v, w : i32
+var v, w : i64
 var r : u32
 begin
-    x + y
+    x + y + v + w
 end.

@@ -7,7 +7,7 @@ module Parser (parser) where
 import Control.Monad (void)
 import Data.Functor.Identity (Identity)
 import Data.Int (Int32)
-import Data.List.NonEmpty (NonEmpty, fromList, nonEmpty)
+import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Data.Text.Lazy (Text, pack)
 import Data.Word (Word32)
 import Expressions
@@ -193,6 +193,7 @@ table =
     ,
         [ gclBinaryOp "*" (BinOpE Mul) AssocLeft
         , gclBinaryOp "/" (BinOpE Div) AssocLeft
+        , gclBinaryOp "%" (BinOpE Div) AssocLeft
         ]
     ,
         [ gclBinaryOp "+" (BinOpE Add) AssocLeft
@@ -268,11 +269,7 @@ gclAppExpr :: Parser Expr
 gclAppExpr = do
     pname <- gclIdentifier
     void $ gclLexeme (char '(')
-    mparams <- gclCommaSep gclTerms
-    params <-
-        case mparams of
-            [] -> pure Nothing
-            params -> pure $ Just (fromList params)
+    params <- gclCommaSep gclTerms
     void $ gclLexeme (char ')')
     pure $ AppE pname params
 
@@ -319,8 +316,11 @@ parseProc = do
             Nothing -> error "Failed parsing body"
             Just exprs' -> pure exprs'
     gclReserved "end"
-    void $ char '.'
+    void $ gclLexeme (char '.')
     pure $ Proc pname fparams mlocal exprs
 
-parser :: Text -> Either ParseError Proc
-parser = parse parseProc "gcl"
+parseProg :: Parser Program
+parseProg = many1 parseProc
+
+parser :: Text -> Either ParseError Program
+parser = parse parseProg "gcl"
