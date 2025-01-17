@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Semantics where
 
@@ -9,7 +10,12 @@ import Control.Monad.Reader
 import Data.IORef
 import Error
 
-type Env = [(Text, (Value, Type))]
+data ScopeInfo = ScopeInfo
+    { level :: Int
+    , info :: (Text, (Value, Type)) 
+    }
+
+type Env = [ScopeInfo]
 
 data Stack = Stack
     { procs :: IORef [(Text, Proc)]
@@ -26,7 +32,7 @@ semanticsEval s a = do
 
 class (Monad m) => MonadStack m where
     updateStack :: Text -> Proc -> m ()
-    updateEnv :: Text -> Value -> Type -> m ()
+    updateEnv :: ScopeInfo -> m ()
     lookupStack :: Text -> m Proc
     lookupEnv :: Text -> m (Value, Type)
 
@@ -34,12 +40,18 @@ instance MonadStack SemanticsM where
     updateStack name proc = do
         p <- asks procs
         liftIO $ modifyIORef' p ((name, proc) :)
-    updateEnv name val typ = do
+    updateEnv scopeInfo = do
         e <- asks env
         environment <- liftIO $ readIORef e
-        case lookup name environment of
-            Just _ -> throwError $ RedeclaredVariable name
-            Nothing -> liftIO $ modifyIORef' e ((name, (val, typ)) :)
+        updateEnvIter scopeInfo environment 
+      where
+        updateEnvIter s [] = do
+            e <- asks env
+            liftIO $ modifyIORef' e (s:)
+        updateEnvIter s@(ScopeInfo lvl1 (var1, (_, _))) ((ScopeInfo lvl2 (var2, (_, _))): scopes) = do
+            if lvl1 == lvl2 && var1 == var2 
+                then throwError $ RedeclaredVariable var1
+                else updateEnvIter s scopes
     lookupStack name = do
         p <- asks procs
         procedures <- liftIO $ readIORef p
@@ -49,9 +61,16 @@ instance MonadStack SemanticsM where
     lookupEnv name = do
         e <- asks env
         environment <- liftIO $ readIORef e
-        case lookup name environment of
-            Nothing -> throwError $ UndeclaredVariable name
-            Just v -> pure v
+        lookupEnvIter name environment
+        where
+            lookupEnvIter n [] = throwError $ UndeclaredVariable n
+            lookupEnvIter n (scope : scopes) = 
+                case lookupScope n scope of
+                    Nothing -> lookupEnvIter n scopes
+                    Just v -> pure v
+
+lookupScope :: Text -> ScopeInfo -> Maybe (Value, Type)
+lookupScope var (ScopeInfo _ (n, (val, typ))) = if var == n then Just (val, typ) else Nothing
 
 initStack :: IO Stack
 initStack = do
@@ -60,14 +79,16 @@ initStack = do
     pure $ Stack ps e
 
 analyzeProgram :: Program -> SemanticsM ()
-analyzeProgram [] = pure ()
-analyzeProgram (p : ps) = analyzeProc p >> analyzeProgram ps
+analyzeProgram prog = analyzeProgramIter prog 0
+    where
+        analyzeProgramIter [] _ = pure ()
+        analyzeProgramIter (p : ps) n = analyzeProc p n >> analyzeProgramIter ps (n+1)
 
-analyzeProc :: Proc -> SemanticsM ()
-analyzeProc p@(Proc pname params locals exprs) = do
+analyzeProc :: Proc -> Int -> SemanticsM ()
+analyzeProc p@(Proc pname params locals exprs) lvl = do
     updateStack pname p
-    mapM_ (\(v, t) -> updateEnv v None t) params
-    mapM_ (\(v, t) -> updateEnv v None t) locals
+    mapM_ (\(v, t) -> updateEnv (ScopeInfo lvl (v, (None, t)))) params
+    mapM_ (\(v, t) -> updateEnv (ScopeInfo lvl (v, (None, t)))) locals
     mapM_ analyzeExpr exprs
 
 analyzeExpr :: Expr -> SemanticsM ()

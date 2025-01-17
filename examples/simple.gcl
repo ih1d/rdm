@@ -4,3 +4,8 @@ var r : u32
 begin
     x + y + v + w
 end.
+
+proc example3(x, y : i64)
+begin
+    x + y 
+end.
