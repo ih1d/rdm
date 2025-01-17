@@ -10,5 +10,5 @@ The [Guarded Command Language](https://en.wikipedia.org/wiki/Guarded_Command_Lan
 ```
 proc main()
 begin
-    print("Hello World!");
+    print("Hello World!")
 end.

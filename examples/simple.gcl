@@ -1,11 +1,10 @@
 proc example3(x, y : i64, z : u64)
 var v, w : i64
-var r : u32
+var s, r : u64
 begin
-    x + y + v + w
-end.
-
-proc example4(x, y : i64)
-begin
-    x - y 
+    v := x + y 
+    w := v ** v
+    s := 50.0
+    r := 125.50
+    z := z / s * r
 end.

@@ -140,12 +140,12 @@ getType _ = undefined
 binaryAnalysis :: BinOp -> (Type -> Type -> SemanticsM Type)
 binaryAnalysis Add = add'
 binaryAnalysis Sub = sub'
-binaryAnalysis _ = undefined
-{-binaryAnalysis Mul = mul'
+binaryAnalysis Mul = mul'
 binaryAnalysis Div = div'
 binaryAnalysis Mod = mod''
 binaryAnalysis Exp = exp'
-binaryAnalysis And = and'
+binaryAnalysis _ = undefined
+{-binaryAnalysis And = and'
 binaryAnalysis Or = or'
 binaryAnalysis Gt = gt'
 binaryAnalysis GtEq = gte'
@@ -172,43 +172,43 @@ sub' U32T U32T = pure U32T
 sub' F64T F64T = pure F64T
 sub' F32T F32T = pure F32T
 sub' _ _ = throwError $ GeneralError "- expects number"
-{-
-mul' :: Expr -> Expr -> SemanticsM ()
-mul' (I64E _) (I64E _) = pure ()
-mul' (I32E _) (I32E _) = pure ()
-mul' (U64E _) (U64E _) = pure ()
-mul' (U32E _) (U32E _) = pure ()
-mul' (F64E _) (F64E _) = pure ()
-mul' (F32E _) (F32E _) = pure ()
+
+mul' :: Type -> Type -> SemanticsM Type
+mul' I64T I64T = pure I64T
+mul' I32T I32T = pure I32T
+mul' U64T U64T = pure U64T
+mul' U32T U32T = pure U32T
+mul' F64T F64T = pure F64T
+mul' F32T F32T = pure F32T
 mul' _ _ = throwError $ GeneralError "* expects number"
 
-div' :: Expr -> Expr -> SemanticsM ()
-div' (I64E _) (I64E _) = pure ()
-div' (I32E _) (I32E _) = pure ()
-div' (U64E _) (U64E _) = pure ()
-div' (U32E _) (U32E _) = pure ()
-div' (F64E _) (F64E _) = pure ()
-div' (F32E _) (F32E _) = pure ()
+div' :: Type -> Type -> SemanticsM Type
+div' I64T I64T = pure I64T
+div' I32T I32T = pure I32T
+div' U64T U64T = pure U64T
+div' U32T U32T = pure U32T
+div' F64T F64T = pure F64T
+div' F32T F32T = pure F32T
 div' _ _ = throwError $ GeneralError "/ expects number"
 
-exp' :: Expr -> Expr -> SemanticsM ()
-exp' (I64E _) (I64E _) = pure ()
-exp' (I32E _) (I32E _) = pure ()
-exp' (U64E _) (U64E _) = pure ()
-exp' (U32E _) (U32E _) = pure ()
-exp' (F64E _) (F64E _) = pure ()
-exp' (F32E _) (F32E _) = pure ()
-exp' _ _ = throwError $ GeneralError "% expects number"
+exp' :: Type -> Type -> SemanticsM Type
+exp' I64T I64T = pure I64T
+exp' I32T I32T = pure I32T
+exp' U64T U64T = pure U64T
+exp' U32T U32T = pure U32T
+exp' F64T F64T = pure F64T
+exp' F32T F32T = pure F32T
+exp' _ _ = throwError $ GeneralError "** expects number"
 
-mod'' :: Expr -> Expr -> SemanticsM ()
-mod'' (I64E _) (I64E _) = pure ()
-mod'' (I32E _) (I32E _) = pure ()
-mod'' (U64E _) (U64E _) = pure ()
-mod'' (U32E _) (U32E _) = pure ()
-mod'' (F64E _) (F64E _) = pure ()
-mod'' (F32E _) (F32E _) = pure ()
+mod'' :: Type -> Type -> SemanticsM Type
+mod'' I64T I64T = pure I64T
+mod'' I32T I32T = pure I32T
+mod'' U64T U64T = pure U64T
+mod'' U32T U32T = pure U32T
+mod'' F64T F64T = pure F64T
 mod'' _ _ = throwError $ GeneralError "% expects number"
 
+{-
 and' :: Expr -> Expr -> SemanticsM ()
 and' (BoolE _) (BoolE _) = pure ()
 and' _ _ = throwError $ GeneralError "/\\ expects boolean"

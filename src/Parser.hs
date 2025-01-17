@@ -158,14 +158,13 @@ gclArrayMem = do
 gclTermExpr :: Parser Expr
 gclTermExpr =
     try gclArrayMem
+        <|> try (gclF64Expr <|> gclF32Expr)
         <|> gclIdExpr
         <|> gclBoolExpr
         <|> gclI64Expr
         <|> gclI32Expr
         <|> gclU64Expr
         <|> gclU32Expr
-        <|> gclF64Expr
-        <|> gclF32Expr
         <|> gclCharExpr
         <|> gclStrExpr
 
