@@ -8,6 +8,7 @@ data EvalError
     | UndeclaredVariable Text
     | RedeclaredVariable Text
     | UndeclaredProc Text
+    | RedeclaredProc Text
     | ArgumentMismatch String Int Int
     | GeneralError String
     deriving (Show)
@@ -21,6 +22,8 @@ errorMessage (RedeclaredVariable v) =
     "Semantic error: variable '" ++ (unpack v) ++ "' is already declared in the current scope."
 errorMessage (UndeclaredProc p) =
     "Semantic error: procedure '" ++ (unpack p) ++ "' is not defined."
+errorMessage (RedeclaredProc p) =
+    "Semantic error: procedure '" ++ (unpack p) ++ "' is already declared."
 errorMessage (ArgumentMismatch p expected actual) =
     "Argument error in procedure '"
         ++ p

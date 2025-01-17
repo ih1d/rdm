@@ -39,7 +39,10 @@ class (Monad m) => MonadStack m where
 instance MonadStack SemanticsM where
     updateStack name proc = do
         p <- asks procs
-        liftIO $ modifyIORef' p ((name, proc) :)
+        procedures <- liftIO $ readIORef p
+        case lookup name procedures of
+            Nothing -> liftIO $ modifyIORef' p ((name, proc) :)
+            Just _ -> throwError $ RedeclaredProc name 
     updateEnv scopeInfo = do
         e <- asks env
         environment <- liftIO $ readIORef e
@@ -136,9 +139,9 @@ getType _ = undefined
 -- valueOf (I64E x) = (I64E
 binaryAnalysis :: BinOp -> (Type -> Type -> SemanticsM Type)
 binaryAnalysis Add = add'
+binaryAnalysis Sub = sub'
 binaryAnalysis _ = undefined
-{-binaryAnalysis Sub = sub'
-binaryAnalysis Mul = mul'
+{-binaryAnalysis Mul = mul'
 binaryAnalysis Div = div'
 binaryAnalysis Mod = mod''
 binaryAnalysis Exp = exp'
@@ -161,16 +164,15 @@ add' F64T F64T = pure F64T
 add' F32T F32T = pure F32T
 add' _ _ = throwError $ GeneralError "+ expects number"
 
-{-
-sub' :: Expr -> Expr -> SemanticsM ()
-sub' (I64E _) (I64E _) = pure ()
-sub' (I32E _) (I32E _) = pure ()
-sub' (U64E _) (U64E _) = pure ()
-sub' (U32E _) (U32E _) = pure ()
-sub' (F64E _) (F64E _) = pure ()
-sub' (F32E _) (F32E _) = pure ()
+sub' :: Type -> Type -> SemanticsM Type
+sub' I64T I64T = pure I64T
+sub' I32T I32T = pure I32T
+sub' U64T U64T = pure U64T
+sub' U32T U32T = pure U32T
+sub' F64T F64T = pure F64T
+sub' F32T F32T = pure F32T
 sub' _ _ = throwError $ GeneralError "- expects number"
-
+{-
 mul' :: Expr -> Expr -> SemanticsM ()
 mul' (I64E _) (I64E _) = pure ()
 mul' (I32E _) (I32E _) = pure ()

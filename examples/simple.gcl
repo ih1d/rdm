@@ -5,7 +5,7 @@ begin
     x + y + v + w
 end.
 
-proc example3(x, y : i64)
+proc example4(x, y : i64)
 begin
-    x + y 
+    x - y 
 end.
