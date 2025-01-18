@@ -33,4 +33,3 @@ errorMessage (ArgumentMismatch p expected actual) =
         ++ show actual
         ++ "."
 errorMessage (GeneralError msg) = msg
-

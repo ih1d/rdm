@@ -1,18 +1,18 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Semantics where
 
-import Expressions
 import Control.Monad.Except
-import Data.Text.Lazy (Text)
 import Control.Monad.Reader
 import Data.IORef
+import Data.Text.Lazy (Text)
 import Error
+import Expressions
 
 data ScopeInfo = ScopeInfo
     { level :: Int
-    , info :: (Text, (Value, Type)) 
+    , info :: (Text, (Value, Type))
     }
 
 type Env = [ScopeInfo]
@@ -42,17 +42,17 @@ instance MonadStack SemanticsM where
         procedures <- liftIO $ readIORef p
         case lookup name procedures of
             Nothing -> liftIO $ modifyIORef' p ((name, proc) :)
-            Just _ -> throwError $ RedeclaredProc name 
+            Just _ -> throwError $ RedeclaredProc name
     updateEnv scopeInfo = do
         e <- asks env
         environment <- liftIO $ readIORef e
-        updateEnvIter scopeInfo environment 
+        updateEnvIter scopeInfo environment
       where
         updateEnvIter s [] = do
             e <- asks env
-            liftIO $ modifyIORef' e (s:)
-        updateEnvIter s@(ScopeInfo lvl1 (var1, (_, _))) ((ScopeInfo lvl2 (var2, (_, _))): scopes) = do
-            if lvl1 == lvl2 && var1 == var2 
+            liftIO $ modifyIORef' e (s :)
+        updateEnvIter s@(ScopeInfo lvl1 (var1, (_, _))) ((ScopeInfo lvl2 (var2, (_, _))) : scopes) = do
+            if lvl1 == lvl2 && var1 == var2
                 then throwError $ RedeclaredVariable var1
                 else updateEnvIter s scopes
     lookupStack name = do
@@ -65,12 +65,12 @@ instance MonadStack SemanticsM where
         e <- asks env
         environment <- liftIO $ readIORef e
         lookupEnvIter name environment
-        where
-            lookupEnvIter n [] = throwError $ UndeclaredVariable n
-            lookupEnvIter n (scope : scopes) = 
-                case lookupScope n scope of
-                    Nothing -> lookupEnvIter n scopes
-                    Just v -> pure v
+      where
+        lookupEnvIter n [] = throwError $ UndeclaredVariable n
+        lookupEnvIter n (scope : scopes) =
+            case lookupScope n scope of
+                Nothing -> lookupEnvIter n scopes
+                Just v -> pure v
 
 lookupScope :: Text -> ScopeInfo -> Maybe (Value, Type)
 lookupScope var (ScopeInfo _ (n, (val, typ))) = if var == n then Just (val, typ) else Nothing
@@ -83,9 +83,9 @@ initStack = do
 
 analyzeProgram :: Program -> SemanticsM ()
 analyzeProgram prog = analyzeProgramIter prog 0
-    where
-        analyzeProgramIter [] _ = pure ()
-        analyzeProgramIter (p : ps) n = analyzeProc p n >> analyzeProgramIter ps (n+1)
+  where
+    analyzeProgramIter [] _ = pure ()
+    analyzeProgramIter (p : ps) n = analyzeProc p n >> analyzeProgramIter ps (n + 1)
 
 analyzeProc :: Proc -> Int -> SemanticsM ()
 analyzeProc p@(Proc pname params locals exprs) lvl = do
@@ -132,7 +132,6 @@ getType (BinOpE op e1 e2) = do
     t2 <- getType e2
     binaryAnalysis op t1 t2
 getType _ = undefined
-    
 
 -- pa despues
 -- valueOf :: Expr -> Value
@@ -145,6 +144,7 @@ binaryAnalysis Div = div'
 binaryAnalysis Mod = mod''
 binaryAnalysis Exp = exp'
 binaryAnalysis _ = undefined
+
 {-binaryAnalysis And = and'
 binaryAnalysis Or = or'
 binaryAnalysis Gt = gt'

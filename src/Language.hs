@@ -22,7 +22,7 @@ gclDef =
         , identLetter = alphaNum <|> char '_'
         , opStart = opLetter gclDef
         , opLetter = oneOf ":!#$%&*+./<=>?@\\^|-~"
-        , reservedOpNames = gclOps 
+        , reservedOpNames = gclOps
         , reservedNames = gclKeywords
         , caseSensitive = True
         }

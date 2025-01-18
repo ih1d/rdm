@@ -274,7 +274,7 @@ gclAppExpr = do
 
 -- parse an expression
 gclExpr :: Parser Expr
-gclExpr = try gclAppExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms 
+gclExpr = try gclAppExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
 
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]
