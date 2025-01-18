@@ -44,7 +44,7 @@ data Type
     | F32T
     | CharT
     | StrT
-    deriving (Show)
+    deriving (Eq, Show)
 
 {- An expression is:
  - boolean
@@ -69,7 +69,7 @@ data Expr
     | CharE Char
     | StrE Text
     | IdE Text
-    | IfE Expr (NonEmpty Expr) (Maybe [(Expr, NonEmpty Expr)]) (Maybe (NonEmpty Expr))
+    | IfE Expr [Expr] [(Expr, [Expr])] [Expr]
     | DoE Expr [Expr]
     | AppE Text [Expr]
     | BinOpE BinOp Expr Expr
@@ -85,16 +85,20 @@ data Value
     | U32V Word32
     | F64V Double
     | F32V Float
+    | CharV Char
+    | StrV Text
     | None
-    deriving (Show)
+    deriving (Show, Eq)
 
 {- Binary operators -}
 data BinOp
-    = Equal
+    = Assign
+    | Equal
     | NotEqual
     | Impl
     | And
     | Or
+    | XOr
     | Gt
     | GtEq
     | Lt
@@ -105,7 +109,6 @@ data BinOp
     | Div
     | Mod
     | Exp
-    | Assign
     deriving (Show)
 
 {- Unary operators -}

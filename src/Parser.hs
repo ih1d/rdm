@@ -7,7 +7,7 @@ module Parser (parser) where
 import Control.Monad (void)
 import Data.Functor.Identity (Identity)
 import Data.Int (Int32)
-import Data.List.NonEmpty (NonEmpty, nonEmpty)
+import Data.List.NonEmpty (nonEmpty)
 import Data.Text.Lazy (Text, pack)
 import Data.Word (Word32)
 import Expressions
@@ -19,7 +19,6 @@ import Text.Parsec (
     many,
     many1,
     oneOf,
-    optionMaybe,
     parse,
     try,
     (<|>),
@@ -161,10 +160,7 @@ gclTermExpr =
         <|> try (gclF64Expr <|> gclF32Expr)
         <|> gclIdExpr
         <|> gclBoolExpr
-        <|> gclI64Expr
-        <|> gclI32Expr
-        <|> gclU64Expr
-        <|> gclU32Expr
+        <|> try (gclI64Expr <|> gclI32Expr <|> gclU64Expr <|> gclU32Expr)
         <|> gclCharExpr
         <|> gclStrExpr
 
@@ -207,6 +203,7 @@ table =
         , gclBinaryOp "<=" (BinOpE LtEq) AssocNone
         ]
     , [gclBinaryOp "/\\" (BinOpE And) AssocRight]
+    , [gclBinaryOp "^" (BinOpE XOr) AssocRight]
     , [gclBinaryOp "\\/" (BinOpE Or) AssocRight]
     , [gclBinaryOp "==>" (BinOpE Impl) AssocRight]
     , [gclBinaryOp ":=" (BinOpE Assign) AssocRight]
@@ -225,22 +222,22 @@ gclIfExpr = do
     gclReservedOp "|"
     mthns <- many1 gclExpr
     thns <-
-        case nonEmpty mthns of
-            Nothing -> error "expecting one or more expressions after if"
-            Just thns -> pure thns
-    elsifs <- optionMaybe $ many gclElsIfExpr
-    elses <- optionMaybe gclElseExpr
+        case mthns of
+            [] -> error "expecting one or more expressions after if"
+            thns' -> pure thns'
+    elsifs <- many gclElsIfExpr
+    elses <- gclElseExpr
     gclReserved "fi"
     pure $ IfE cnd thns elsifs elses
   where
-    gclElseExpr :: Parser (NonEmpty Expr)
+    gclElseExpr :: Parser [Expr]
     gclElseExpr = do
         gclReserved "|"
         melses <- many1 gclExpr
-        case nonEmpty melses of
-            Nothing -> error "expecting one or more expressions after if"
-            Just elses -> pure elses
-    gclElsIfExpr :: Parser (Expr, NonEmpty Expr)
+        case melses of
+            [] -> error "expecting one or more expressions after if"
+            elses -> pure elses
+    gclElsIfExpr :: Parser (Expr, [Expr])
     gclElsIfExpr = do
         gclReservedOp "||"
         cnd <- gclTerms
@@ -248,9 +245,9 @@ gclIfExpr = do
         gclReservedOp "|"
         mthns <- many1 gclExpr
         thns <-
-            case nonEmpty mthns of
-                Nothing -> error "expecting one or more expressions elseif"
-                Just thns' -> pure thns'
+            case mthns of
+                [] -> error "expecting one or more expressions after guard"
+                thns' -> pure thns'
         pure (cnd, thns)
 
 -- parse do expression

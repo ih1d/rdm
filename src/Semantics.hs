@@ -1,91 +1,24 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+module Semantics (
+    analyzeProgram, 
+    initStack,
+    semanticsEval, 
+) where
 
-module Semantics where
-
-import Control.Monad.Except
-import Control.Monad.Reader
-import Data.IORef
-import Data.Text.Lazy (Text)
 import Error
+import Control.Monad (when)
+import Control.Monad.Except (throwError)
 import Expressions
-
-data ScopeInfo = ScopeInfo
-    { level :: Int
-    , info :: (Text, (Value, Type))
-    }
-
-type Env = [ScopeInfo]
-
-data Stack = Stack
-    { procs :: IORef [(Text, Proc)]
-    , env :: IORef Env
-    }
-
-newtype SemanticsM a = SemanticsM {unSemantics :: ExceptT EvalError (ReaderT Stack IO) a}
-    deriving (Functor, Applicative, Monad, MonadReader Stack, MonadIO, MonadError EvalError)
-
-semanticsEval :: Stack -> SemanticsM a -> IO (Either String a)
-semanticsEval s a = do
-    result <- runReaderT (runExceptT (unSemantics a)) s
-    pure $ either (Left . errorMessage) Right result
-
-class (Monad m) => MonadStack m where
-    updateStack :: Text -> Proc -> m ()
-    updateEnv :: ScopeInfo -> m ()
-    lookupStack :: Text -> m Proc
-    lookupEnv :: Text -> m (Value, Type)
-
-instance MonadStack SemanticsM where
-    updateStack name proc = do
-        p <- asks procs
-        procedures <- liftIO $ readIORef p
-        case lookup name procedures of
-            Nothing -> liftIO $ modifyIORef' p ((name, proc) :)
-            Just _ -> throwError $ RedeclaredProc name
-    updateEnv scopeInfo = do
-        e <- asks env
-        environment <- liftIO $ readIORef e
-        updateEnvIter scopeInfo environment
-      where
-        updateEnvIter s [] = do
-            e <- asks env
-            liftIO $ modifyIORef' e (s :)
-        updateEnvIter s@(ScopeInfo lvl1 (var1, (_, _))) ((ScopeInfo lvl2 (var2, (_, _))) : scopes) = do
-            if lvl1 == lvl2 && var1 == var2
-                then throwError $ RedeclaredVariable var1
-                else updateEnvIter s scopes
-    lookupStack name = do
-        p <- asks procs
-        procedures <- liftIO $ readIORef p
-        case lookup name procedures of
-            Nothing -> throwError $ UndeclaredProc name
-            Just proc -> pure proc
-    lookupEnv name = do
-        e <- asks env
-        environment <- liftIO $ readIORef e
-        lookupEnvIter name environment
-      where
-        lookupEnvIter n [] = throwError $ UndeclaredVariable n
-        lookupEnvIter n (scope : scopes) =
-            case lookupScope n scope of
-                Nothing -> lookupEnvIter n scopes
-                Just v -> pure v
-
-lookupScope :: Text -> ScopeInfo -> Maybe (Value, Type)
-lookupScope var (ScopeInfo _ (n, (val, typ))) = if var == n then Just (val, typ) else Nothing
-
-initStack :: IO Stack
-initStack = do
-    e <- newIORef []
-    ps <- newIORef []
-    pure $ Stack ps e
+import SemanticsMonad
 
 analyzeProgram :: Program -> SemanticsM ()
-analyzeProgram prog = analyzeProgramIter prog 0
+analyzeProgram prog = analyzeProgramIter prog 
   where
-    analyzeProgramIter [] _ = pure ()
-    analyzeProgramIter (p : ps) n = analyzeProc p n >> analyzeProgramIter ps (n + 1)
+    analyzeProgramIter [] = pure ()
+    analyzeProgramIter (p : ps) = do
+        n <- getScope
+        analyzeProc p n 
+        updateScope
+        analyzeProgramIter ps 
 
 analyzeProc :: Proc -> Int -> SemanticsM ()
 analyzeProc p@(Proc pname params locals exprs) lvl = do
@@ -109,12 +42,72 @@ analyzeExpr (AppE name exprs) = do
 analyzeExpr (IdE var) = do
     _ <- lookupEnv var
     pure ()
-analyzeExpr (BinOpE op e1 e2) = do
-    t1 <- getType e1
-    t2 <- getType e2
-    _ <- binaryAnalysis op t1 t2
+analyzeExpr (BinOpE op e1 e2) = 
+    case op of
+        Assign -> 
+            case e1 of
+                IdE n -> do
+                    t1 <- snd <$> lookupEnv n
+                    t2 <- getType e2
+                    if t1 /= t2
+                        then throwError $ TypeError t1 t2
+                        else do
+                            val <- getValue e2
+                            sl <- getScope 
+                            updateVar (ScopeInfo sl (n, (val, t1)))
+                _ -> throwError $ GeneralError "assigment expects a variable and an expression"
+        _ -> do
+            t1 <- getType e1
+            t2 <- getType e2
+            _ <- binaryAnalysis op t1 t2
+            pure ()
+analyzeExpr (UnaryOpE op e) = do
+    t <- getType e
+    _ <- unaryAnalysis op t
     pure ()
+analyzeExpr (IfE cndE thns elsifs elses) = do
+    tcnd <- getType cndE
+    when (tcnd /= BoolT) (throwError $ GeneralError "if expects boolean")
+    tthen <- getType $ last thns
+    if null elsifs 
+        then do
+            when (null elses) (pure ())
+            telse <- getType $ last elses
+            if tthen == telse
+                then pure ()
+                else throwError $ GeneralError "if expressions expect same return type"
+        else do
+            let cnds = map fst elsifs 
+            types <- mapM getType cnds
+            if all (== BoolT) types
+                then do
+                telsif <- getType $ last $ concat $ map snd elsifs
+                telse <- getType $ last elses
+                if tthen == telse && tthen == telsif
+                    then pure ()
+                    else throwError $ GeneralError "if expressions expect same return type"
+                else throwError $ GeneralError "|| expects boolean"
+analyzeExpr (DoE cndE exprs) = do
+    tcnd <- getType cndE
+    if tcnd /= BoolT
+        then throwError $ GeneralError "do expects boolean"
+        else mapM_ analyzeExpr exprs
 analyzeExpr _ = undefined
+
+getValue :: Expr -> SemanticsM Value
+getValue (I64E n) = pure $ I64V n
+getValue (I32E n) = pure $ I32V n
+getValue (U64E n) = pure $ U64V n
+getValue (U32E n) = pure $ U32V n
+getValue (F64E n) = pure $ F64V n
+getValue (F32E n) = pure $ F32V n
+getValue (CharE c) = pure $ CharV c
+getValue (StrE s) = pure $ StrV s
+getValue (BoolE b) = pure $ BoolV b
+getValue (IdE n) = do
+    (val, _) <- lookupEnv n
+    pure val
+getValue _ = undefined
 
 getType :: Expr -> SemanticsM Type
 getType (IdE n) = snd <$> lookupEnv n
@@ -123,19 +116,22 @@ getType (I32E _) = pure I32T
 getType (U64E _) = pure U64T
 getType (U32E _) = pure U32T
 getType (F64E _) = pure F64T
+getType (F32E _) = pure F32T
 getType (CharE _) = pure CharT
 getType (StrE _) = pure StrT
 getType (BoolE _) = pure BoolT
-getType (F32E _) = pure F32T
 getType (BinOpE op e1 e2) = do
     t1 <- getType e1
     t2 <- getType e2
     binaryAnalysis op t1 t2
+getType (UnaryOpE op e) = do
+    t <- getType e
+    unaryAnalysis op t
+getType (IfE _ thns _ _) = getType $ last thns
+getType (DoE _ exprs) = getType $ last exprs
+getType (ArrayMemE a _) = snd <$> lookupEnv a 
 getType _ = undefined
-
--- pa despues
--- valueOf :: Expr -> Value
--- valueOf (I64E x) = (I64E
+    
 binaryAnalysis :: BinOp -> (Type -> Type -> SemanticsM Type)
 binaryAnalysis Add = add'
 binaryAnalysis Sub = sub'
@@ -143,17 +139,34 @@ binaryAnalysis Mul = mul'
 binaryAnalysis Div = div'
 binaryAnalysis Mod = mod''
 binaryAnalysis Exp = exp'
-binaryAnalysis _ = undefined
-
-{-binaryAnalysis And = and'
+binaryAnalysis And = and'
+binaryAnalysis XOr = xor'
 binaryAnalysis Or = or'
+binaryAnalysis Impl = impl'
 binaryAnalysis Gt = gt'
 binaryAnalysis GtEq = gte'
 binaryAnalysis Lt = lt'
 binaryAnalysis LtEq = lte'
-binaryAnalysis Equal = eq'
+binaryAnalysis Assign = assign'
+binaryAnalysis _ = undefined
+{-binaryAnalysis Equal = eq'
 binaryAnalysis NotEqual = neq'
 -}
+
+unaryAnalysis :: UnOp -> (Type -> SemanticsM Type)
+unaryAnalysis Not = not'
+unaryAnalysis ArrLen = arrLen'
+
+not' :: Type -> SemanticsM Type
+not' BoolT = pure BoolT
+not' _ = throwError $ GeneralError "~ expects a boolean"
+
+arrLen' :: Type -> SemanticsM Type
+arrLen' (ArrayT _) = pure U64T
+arrLen' _ = throwError $ GeneralError "# expects an array"
+
+assign' :: Type -> Type -> SemanticsM Type
+assign' t1 _ = pure t1
 
 add' :: Type -> Type -> SemanticsM Type
 add' I64T I64T = pure I64T
@@ -208,55 +221,59 @@ mod'' U32T U32T = pure U32T
 mod'' F64T F64T = pure F64T
 mod'' _ _ = throwError $ GeneralError "% expects number"
 
-{-
-and' :: Expr -> Expr -> SemanticsM ()
-and' (BoolE _) (BoolE _) = pure ()
+and' :: Type -> Type -> SemanticsM Type
+and' BoolT BoolT = pure BoolT
 and' _ _ = throwError $ GeneralError "/\\ expects boolean"
 
-or' :: Expr -> Expr -> SemanticsM ()
-or' (BoolE _) (BoolE _) = pure ()
+or' :: Type -> Type -> SemanticsM Type
+or' BoolT BoolT = pure BoolT
 or' _ _ = throwError $ GeneralError "\\/ expects boolean"
 
-xor' :: Expr -> Expr -> SemanticsM ()
-xor' (BoolE _) (BoolE _) = pure ()
+xor' :: Type -> Type -> SemanticsM Type
+xor' BoolT BoolT = pure BoolT
 xor' _ _ = throwError $ GeneralError "^ expects boolean"
 
-gt' :: Expr -> Expr -> SemanticsM ()
-gt' (I64E _) (I64E _) = pure ()
-gt' (I32E _) (I32E _) = pure ()
-gt' (U64E _) (U64E _) = pure ()
-gt' (U32E _) (U32E _) = pure ()
-gt' (F64E _) (F64E _) = pure ()
-gt' (F32E _) (F32E _) = pure ()
+impl' :: Type -> Type -> SemanticsM Type
+impl' BoolT BoolT = pure BoolT
+impl' _ _ = throwError $ GeneralError "^ expects boolean"
+
+gt' :: Type -> Type -> SemanticsM Type
+gt' I64T I64T = pure BoolT
+gt' I32T I32T = pure BoolT
+gt' U64T U64T = pure BoolT
+gt' U32T U32T = pure BoolT
+gt' F64T F64T = pure BoolT
+gt' F32T F32T = pure BoolT
 gt' _ _ = throwError $ GeneralError "> expects number"
 
-gte' :: Expr -> Expr -> SemanticsM ()
-gte' (I64E _) (I64E _) = pure ()
-gte' (I32E _) (I32E _) = pure ()
-gte' (U64E _) (U64E _) = pure ()
-gte' (U32E _) (U32E _) = pure ()
-gte' (F64E _) (F64E _) = pure ()
-gte' (F32E _) (F32E _) = pure ()
+gte' :: Type -> Type -> SemanticsM Type
+gte' I64T I64T = pure BoolT
+gte' I32T I32T = pure BoolT
+gte' U64T U64T = pure BoolT
+gte' U32T U32T = pure BoolT
+gte' F64T F64T = pure BoolT
+gte' F32T F32T = pure BoolT
 gte' _ _ = throwError $ GeneralError ">= expects number"
 
-lt' :: Expr -> Expr -> SemanticsM ()
-lt' (I64E _) (I64E _) = pure ()
-lt' (I32E _) (I32E _) = pure ()
-lt' (U64E _) (U64E _) = pure ()
-lt' (U32E _) (U32E _) = pure ()
-lt' (F64E _) (F64E _) = pure ()
-lt' (F32E _) (F32E _) = pure ()
+lt' :: Type -> Type -> SemanticsM Type
+lt' I64T I64T = pure BoolT
+lt' I32T I32T = pure BoolT
+lt' U64T U64T = pure BoolT
+lt' U32T U32T = pure BoolT
+lt' F64T F64T = pure BoolT
+lt' F32T F32T = pure BoolT
 lt' _ _ = throwError $ GeneralError "< expects number"
 
-lte' :: Expr -> Expr -> SemanticsM ()
-lte' (I64E _) (I64E _) = pure ()
-lte' (I32E _) (I32E _) = pure ()
-lte' (U64E _) (U64E _) = pure ()
-lte' (U32E _) (U32E _) = pure ()
-lte' (F64E _) (F64E _) = pure ()
-lte' (F32E _) (F32E _) = pure ()
+lte' :: Type -> Type -> SemanticsM Type
+lte' I64T I64T = pure BoolT
+lte' I32T I32T = pure BoolT
+lte' U64T U64T = pure BoolT
+lte' U32T U32T = pure BoolT
+lte' F64T F64T = pure BoolT
+lte' F32T F32T = pure BoolT
 lte' _ _ = throwError $ GeneralError "<= expects number"
 
+{-
 eq' :: Expr -> Expr -> SemanticsM ()
 eq' (I64E _) (I64E _) = pure ()
 eq' (I32E _) (I32E _) = pure ()

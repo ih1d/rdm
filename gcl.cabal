@@ -25,6 +25,7 @@ library
     other-modules:
         Language
         Expressions
+        SemanticsMonad
         Error
     -- other-extensions:
     build-depends:    base >=4 && <5

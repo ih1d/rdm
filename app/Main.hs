@@ -15,9 +15,7 @@ run f = do
         putStrLn "expected file extension gcl" 
         exitFailure
     contents <- readFile f
-    let res = parser contents
-    print res
-    case res of
+    case parser contents of
         Right program -> do
             st <- initStack
             semEv <- semanticsEval st (analyzeProgram program) 

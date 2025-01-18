@@ -1,9 +1,11 @@
-proc max(x, y : i64)
+proc max(x, y, z : i64)
 begin
-    if x > y -> 
-        | x := x + 1
-          x
-        | y := y - 1
-          y
+    if x > y /\ x > z -> 
+        | x
+    || y > x /\ y > z ->
+        | y
+    || z > x /\ z > x -> 
+        | z
+        | 0
     fi
 end.
