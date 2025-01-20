@@ -4,6 +4,7 @@ module Semantics (
     semanticsEval, 
 ) where
 
+import Control.Monad.IO.Class 
 import Error
 import Control.Monad (when)
 import Control.Monad.Except (throwError)
@@ -107,6 +108,9 @@ getValue (BoolE b) = pure $ BoolV b
 getValue (IdE n) = do
     (val, _) <- lookupEnv n
     pure val
+getValue (BinOpE _ _ _) = do
+    liftIO $ print "This happens!"
+    undefined
 getValue _ = undefined
 
 getType :: Expr -> SemanticsM Type

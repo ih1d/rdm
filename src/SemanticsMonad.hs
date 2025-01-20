@@ -95,9 +95,6 @@ instance MonadStack SemanticsM where
                     let fstHalf = takeWhile (/= s2) environment 
                         sndHalf = tail $ dropWhile (/= s2) environment 
                     liftIO $ writeIORef e (fstHalf <> [s1] <> sndHalf)
-                    e' <- asks env
-                    env' <- liftIO $ readIORef e'
-                    liftIO $ print env'
                 else updateVarIter s1 scopes
 
 lookupScope :: Text -> ScopeInfo -> Maybe (Value, Type)
