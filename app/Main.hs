@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad (when)
 import Data.Text.Lazy.IO (readFile)
+import Eval
 import Parser (parser)
 import Semantics
 import System.Environment (getArgs)
@@ -19,8 +20,13 @@ run f = do
         Right program -> do
             st <- initStack
             semEv <- runSemantics st (analyzeProgram program)
-            print semEv
-            exitSuccess
+            case semEv of
+                Right _ -> do
+                    ev <- runEval st (eval program)
+                    case ev of
+                        Right v -> print v >> exitSuccess
+                        Left err -> print err >> exitFailure
+                Left err -> print err >> exitFailure
         Left err -> print err >> exitFailure
 
 main :: IO ()

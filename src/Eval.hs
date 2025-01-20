@@ -1,10 +1,13 @@
-module Eval where
+module Eval (
+    runEval,
+    eval,
+) where
 
 import EvalMonad
 import Expressions
 
 eval :: Program -> EvalM Value
-eval [] = undefined -- pure None
+eval [] = head <$> getHeap
 eval _ = undefined
 
 evalProc :: Proc -> EvalM ()
