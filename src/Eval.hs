@@ -4,12 +4,15 @@ import EvalMonad
 import Expressions
 
 eval :: Program -> EvalM Value
+eval [] = undefined -- pure None
 eval _ = undefined
+
+evalProc :: Proc -> EvalM ()
+evalProc _ = undefined
 
 {-
 eval :: Program -> SemanticsM ()
-eval (Prog []) = pure ()
-eval (Prog (x : xs)) = eval x >> eval (Prog xs)
+eval (x : xs) = evalProc x >> eval xs
 eval (Procedure "Main" [] Nothing stms) = do
     mapM_ evalStm stms
 eval (Procedure "Main" [] (Just (VarStm v _)) stms) = do

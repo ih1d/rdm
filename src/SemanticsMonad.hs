@@ -32,7 +32,7 @@ runSemantics s a = do
     result <- runReaderT (runExceptT (unSemantics a)) s
     pure $ either (Left . errorMessage) Right result
 
-class (Monad m) => MonadStack m where
+class (Monad m) => SemanticsMonad m where
     updateScope :: m ()
     getScope :: m Int
     updateStack :: Text -> Proc -> m ()
@@ -43,7 +43,7 @@ class (Monad m) => MonadStack m where
     lookupStack :: Text -> m Proc
     lookupEnv :: Text -> m Type
 
-instance MonadStack SemanticsM where
+instance SemanticsMonad SemanticsM where
     updateScope = do
         sl <- asks scopeLevel
         liftIO $ modifyIORef sl (+ 1)
