@@ -1,10 +1,10 @@
 module Error where
 
-import Expressions
 import Data.Text.Lazy (Text, unpack)
+import Expressions
 
 data EvalError
-    = TypeError Type Type
+    = TypeError Type Type Text
     | UndeclaredVariable Text
     | RedeclaredVariable Text
     | UndeclaredProc Text
@@ -14,16 +14,16 @@ data EvalError
     deriving (Show)
 
 errorMessage :: EvalError -> String
-errorMessage (TypeError expected actual) =
-    "Type error: expected " ++ show expected ++ ", but got " ++ show actual ++ "."
+errorMessage (TypeError expected actual msg) =
+    "Type error: expected " ++ show expected ++ ", but got " ++ show actual ++ ", because " ++ unpack msg
 errorMessage (UndeclaredVariable v) =
-    "Semantic error: undeclared variable '" ++ (unpack v) ++ "'."
+    "Semantic error: undeclared variable '" ++ unpack v ++ "'."
 errorMessage (RedeclaredVariable v) =
-    "Semantic error: variable '" ++ (unpack v) ++ "' is already declared in the current scope."
+    "Semantic error: variable '" ++ unpack v ++ "' is already declared in the current scope."
 errorMessage (UndeclaredProc p) =
-    "Semantic error: procedure '" ++ (unpack p) ++ "' is not defined."
+    "Semantic error: procedure '" ++ unpack p ++ "' is not defined."
 errorMessage (RedeclaredProc p) =
-    "Semantic error: procedure '" ++ (unpack p) ++ "' is already declared."
+    "Semantic error: procedure '" ++ unpack p ++ "' is already declared."
 errorMessage (ArgumentMismatch p expected actual) =
     "Argument error in procedure '"
         ++ p

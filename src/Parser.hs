@@ -8,6 +8,7 @@ import Control.Monad (void)
 import Data.Functor.Identity (Identity)
 import Data.Int (Int32)
 import Data.List.NonEmpty (nonEmpty)
+import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (Text, pack)
 import Data.Word (Word32)
 import Expressions
@@ -19,6 +20,7 @@ import Text.Parsec (
     many,
     many1,
     oneOf,
+    optionMaybe,
     parse,
     try,
     (<|>),
@@ -160,7 +162,8 @@ gclTermExpr =
         <|> try (gclF64Expr <|> gclF32Expr)
         <|> gclIdExpr
         <|> gclBoolExpr
-        <|> try (gclI64Expr <|> gclI32Expr <|> gclU64Expr <|> gclU32Expr)
+        <|> try (gclI64Expr <|> gclI32Expr)
+        <|> try (gclU64Expr <|> gclU32Expr)
         <|> gclCharExpr
         <|> gclStrExpr
 
@@ -226,7 +229,7 @@ gclIfExpr = do
             [] -> error "expecting one or more expressions after if"
             thns' -> pure thns'
     elsifs <- many gclElsIfExpr
-    elses <- gclElseExpr
+    elses <- fromMaybe [] <$> optionMaybe gclElseExpr
     gclReserved "fi"
     pure $ IfE cnd thns elsifs elses
   where
