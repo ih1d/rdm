@@ -6,6 +6,7 @@ module Semantics (
     runSemantics,
 ) where
 
+import GHC.Arr (array, (!))
 import Control.Monad (when)
 import Control.Monad.Except (throwError)
 import Data.List.NonEmpty qualified as NE
@@ -26,8 +27,8 @@ analyzeProgram = analyzeProgramIter
 analyzeProc :: Proc -> Int -> SemanticsM ()
 analyzeProc p@(Proc pname params locals exprs) lvl = do
     updateStack pname p
-    mapM_ (\(v, t) -> updateEnv (ScopeInfo lvl (v, t))) params
-    mapM_ (\(v, t) -> updateEnv (ScopeInfo lvl (v, t))) locals
+    mapM_ (\(v, t) -> updateEnv (ScopeInfo lvl (v, (None, t)))) params
+    mapM_ (\(v, t) -> updateEnv (ScopeInfo lvl (v, (None, t)))) locals
     mapM_ analyzeExpr exprs
 
 analyzeExpr :: Expr -> SemanticsM ()
@@ -47,7 +48,7 @@ analyzeExpr (ArrayE n vals) = do
     if null vals 
         then pure ()
         else do
-            ta <- lookupEnv n
+            ta <- snd <$> lookupEnv n
             tv <- getType $ head vals
             case ta of
                 (ArrayT t) -> 
@@ -66,15 +67,16 @@ analyzeExpr (BinOpE op e1 e2) =
         Assign ->
             case e1 of
                 IdE n -> do
-                    t1 <- lookupEnv n
+                    t1 <- snd <$> lookupEnv n
                     t2 <- getType e2
                     if t1 /= t2
                         then throwError $ TypeError t1 t2 "assignment expects type of variable to be the same as value"
                         else do
+                            v2 <- getValue e2
                             sl <- getScope
-                            updateVar (ScopeInfo sl (n, t1))
+                            updateVar (ScopeInfo sl (n, (v2, t1)))
                 ArrayMemE a _ -> do
-                    at <- lookupEnv a
+                    (av, at) <- lookupEnv a
                     case at of
                         (ArrayT t1) -> do
                             t2 <- getType e2
@@ -82,7 +84,7 @@ analyzeExpr (BinOpE op e1 e2) =
                                 then throwError $ TypeError t1 t2 "assignment expects type of variable to be the same as value"
                                 else do
                                     sl <- getScope
-                                    updateVar (ScopeInfo sl (a, ArrayT t1))
+                                    updateVar (ScopeInfo sl (a, (av, ArrayT t1)))
                         _ -> throwError $ GeneralError "failed to store type array correctly"
                 _ -> throwError $ GeneralError "assigment expects a variable and an expression"
         _ -> do
@@ -127,8 +129,45 @@ analyzeExpr (DoE cndE exprs) = do
         then throwError $ TypeError BoolT tcnd "do conditional expects bool"
         else mapM_ analyzeExpr exprs
 
+getValue :: Expr -> SemanticsM Value
+getValue (IdE n) = fst <$> lookupEnv n
+getValue (I64E n) = pure (I64V n)
+getValue (I32E n) = pure (I32V n)
+getValue (U64E n) = pure (U64V n)
+getValue (U32E n) = pure (U32V n)
+getValue (F64E n) = pure (F64V n)
+getValue (F32E n) = pure (F32V n)
+getValue (BoolE n) = pure (BoolV n)
+getValue (CharE n) = pure (CharV n)
+getValue (StrE n) = pure (StrV n)
+getValue (ArrayMemE n expr) = do
+    (av, _) <- lookupEnv n
+    t <- getType expr
+    when (t /= I64T || t /= I32T || t /= U64T || t /= U32T) $ do
+        throwError $ TypeError I64T t "array membership access expects an integer."
+    v <- constructNumericVal <$> getValue expr
+    case av of
+        (ArrayV arr) -> pure (arr ! v)
+        _ -> throwError $ GeneralError "failed to store array correctly"
+  where
+    constructNumericVal (I64V v) = v 
+    constructNumericVal (I32V v) = (fromIntegral v) :: Int
+    constructNumericVal (U64V v) = (fromIntegral v) :: Int 
+    constructNumericVal (U32V v) = (fromIntegral v) :: Int 
+    constructNumericVal _ = error "array membership access expects an integer." 
+getValue (ArrayE _ exprs) = do
+    vals <- mapM getValue exprs 
+    let indices = (0, (length vals) - 1)
+        lst = zip [0..(length vals) - 1] vals
+    pure $ ArrayV (array indices lst)
+getValue (IfE _cnd _thns _elsifs _elses) = undefined
+getValue (DoE _cnd _exprs) = undefined
+getValue (AppE _f _exprs) = undefined
+getValue (BinOpE _op _e1 _e2) = undefined
+getValue (UnaryOpE _op _e) = undefined
+
 getType :: Expr -> SemanticsM Type
-getType (IdE n) = lookupEnv n
+getType (IdE n) = snd <$> lookupEnv n
 getType (I64E _) = pure I64T
 getType (I32E _) = pure I32T
 getType (U64E _) = pure U64T
@@ -138,7 +177,7 @@ getType (F32E _) = pure F32T
 getType (CharE _) = pure CharT
 getType (StrE _) = pure StrT
 getType (BoolE _) = pure BoolT
-getType (ArrayE n _) = lookupEnv n
+getType (ArrayE n _) = snd <$> lookupEnv n
 getType (BinOpE op e1 e2) = do
     t1 <- getType e1
     t2 <- getType e2
@@ -149,7 +188,7 @@ getType (UnaryOpE op e) = do
 getType (IfE _ thns _ _) = getType $ last thns
 getType (DoE _ exprs) = getType $ last exprs
 getType (ArrayMemE a _) = do
-    t <- lookupEnv a
+    t <- snd <$> lookupEnv a
     case t of
         (ArrayT at) -> pure at
         _ -> throwError $ GeneralError "failed to store type array correctly"

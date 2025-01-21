@@ -12,7 +12,7 @@ import Expressions
 
 data ScopeInfo = ScopeInfo
     { level :: Int
-    , info :: (Text, Type)
+    , info :: (Text, (Value, Type))
     }
     deriving (Show, Eq)
 
@@ -41,7 +41,7 @@ class (Monad m) => SemanticsMonad m where
     getEnv :: m Env
     updateVar :: ScopeInfo -> m ()
     lookupStack :: Text -> m Proc
-    lookupEnv :: Text -> m Type
+    lookupEnv :: Text -> m (Value, Type)
 
 instance SemanticsMonad SemanticsM where
     updateScope = do
@@ -88,13 +88,16 @@ instance SemanticsMonad SemanticsM where
             case lookupScope n scope of
                 Nothing -> lookupEnvIter n scopes
                 Just v -> pure v
+        lookupScope :: Text -> ScopeInfo -> Maybe (Value, Type)
+        lookupScope var (ScopeInfo _ (n, vtype)) = if var == n then Just vtype else Nothing
+
     updateVar scope = do
         e <- asks env
         environment <- liftIO $ readIORef e
         updateVarIter scope environment
       where
         updateVarIter (ScopeInfo _ (v, _)) [] = throwError $ UndeclaredVariable v
-        updateVarIter s1@(ScopeInfo l1 (v1, _)) (s2@(ScopeInfo l2 (v2, _)) : scopes) = do
+        updateVarIter s1@(ScopeInfo l1 (v1, (_, _))) (s2@(ScopeInfo l2 (v2, (_, _))) : scopes) = do
             if l1 == l2 && v1 == v2
                 then do
                     e <- asks env
@@ -103,9 +106,6 @@ instance SemanticsMonad SemanticsM where
                         sndHalf = tail $ dropWhile (/= s2) environment
                     liftIO $ writeIORef e (fstHalf <> [s1] <> sndHalf)
                 else updateVarIter s1 scopes
-
-lookupScope :: Text -> ScopeInfo -> Maybe Type
-lookupScope var (ScopeInfo _ (n, typ)) = if var == n then Just typ else Nothing
 
 initStack :: IO Stack
 initStack = do
