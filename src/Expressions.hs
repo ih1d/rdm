@@ -59,6 +59,7 @@ data Type
 -}
 data Expr
     = ArrayMemE Text Expr
+    | ArrayE Text [Expr]
     | BoolE Bool
     | I64E Int
     | I32E Int32

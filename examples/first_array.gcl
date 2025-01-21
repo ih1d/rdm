@@ -1,4 +1,0 @@
-proc first_of_array(arr : array of i64)
-begin
-    a[0]
-end.

@@ -43,6 +43,18 @@ analyzeExpr (StrE _) = pure ()
 analyzeExpr (ArrayMemE _ e) = do
     t <- getType e
     when (t /= I64T) (throwError $ TypeError I64T t "array access expects an i64")
+analyzeExpr (ArrayE n vals) = do
+    if null vals 
+        then pure ()
+        else do
+            ta <- lookupEnv n
+            tv <- getType $ head vals
+            case ta of
+                (ArrayT t) -> 
+                    if t /= tv 
+                        then throwError $ TypeError t tv "array types do not match" 
+                        else pure ()
+                _ -> throwError $ GeneralError "type creation for array failed!"
 analyzeExpr (AppE name exprs) = do
     _ <- lookupStack name
     mapM_ analyzeExpr exprs
@@ -126,6 +138,7 @@ getType (F32E _) = pure F32T
 getType (CharE _) = pure CharT
 getType (StrE _) = pure StrT
 getType (BoolE _) = pure BoolT
+getType (ArrayE n _) = lookupEnv n
 getType (BinOpE op e1 e2) = do
     t1 <- getType e1
     t2 <- getType e2

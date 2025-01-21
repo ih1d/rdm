@@ -1,0 +1,13 @@
+proc sub_first_of_array(arr : array of i64)
+var tmp : array of i64
+begin
+    tmp := [1 2 3 4]
+    arr[0] - tmp[1]
+end.
+
+proc main()
+var arr : array of i64
+begin
+    arr := [5 6 7 8 9]
+    sub_first_of_array(arr)
+end.

@@ -272,9 +272,19 @@ gclAppExpr = do
     void $ gclLexeme (char ')')
     pure $ AppE pname params
 
+-- parse an array expression (creation)
+gclArrayExpr :: Parser Expr
+gclArrayExpr = do
+    arrname <- gclIdentifier
+    gclReservedOp ":="
+    void $ gclLexeme (char '[')
+    vals <- many gclTermExpr 
+    void $ gclLexeme (char ']')
+    pure $ ArrayE arrname vals
+
 -- parse an expression
 gclExpr :: Parser Expr
-gclExpr = try gclAppExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
+gclExpr = try gclAppExpr <|> try gclArrayExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
 
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]
