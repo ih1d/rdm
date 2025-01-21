@@ -22,12 +22,10 @@ library
     exposed-modules:
         Parser
         Semantics
-        IR
     other-modules:
         Language
         Expressions
         SemanticsMonad
-        IRMonad
         Error
     default-extensions:
         ImportQualifiedPost
