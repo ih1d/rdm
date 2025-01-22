@@ -1,0 +1,14 @@
+proc main()
+begin
+    talbegin
+        prod: 
+            r3 := 0;
+            jump loop
+        loop:
+            if r1 jump done;
+            r3 := r2 + r3;
+            r1 := r1 + -1;
+            jump loop
+        done: jump r9
+    talend.
+end.

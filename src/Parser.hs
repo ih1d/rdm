@@ -12,6 +12,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (Text, pack)
 import Data.Word (Word32)
 import Expressions
+import TAL
 import Language
 import Text.Parsec (
     ParseError,
@@ -286,6 +287,20 @@ gclArrayExpr = do
 gclExpr :: Parser Expr
 gclExpr = try gclAppExpr <|> try gclArrayExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
 
+gclTalInstruction :: Parser TalBlock
+gclTalInstruction = undefined
+
+-- parse a tal block
+gclTalBlock :: Parser Expr
+gclTalBlock = do
+    gclReserved "talbegin"
+    minstrs <- many1 gclTalInstruction
+    instrs <- 
+        case nonEmpty minstrs of
+            Nothing -> error "failed to parse tal block"
+            Just instr -> pure instr
+    gclReserved "talend"
+    pure $ TalAsm instrs
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]
 parseLocalVariables = do

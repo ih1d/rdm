@@ -128,6 +128,7 @@ analyzeExpr (DoE cndE exprs) = do
     if tcnd /= BoolT
         then throwError $ TypeError BoolT tcnd "do conditional expects bool"
         else mapM_ analyzeExpr exprs
+analyzeExpr _ = undefined
 
 getValue :: Expr -> SemanticsM Value
 getValue (IdE n) = fst <$> lookupEnv n
@@ -165,6 +166,7 @@ getValue (DoE _cnd _exprs) = undefined
 getValue (AppE _f _exprs) = undefined
 getValue (BinOpE _op _e1 _e2) = undefined
 getValue (UnaryOpE _op _e) = undefined
+getValue _ = undefined
 
 getType :: Expr -> SemanticsM Type
 getType (IdE n) = snd <$> lookupEnv n
@@ -195,6 +197,7 @@ getType (ArrayMemE a _) = do
 getType (AppE f _) = do
     b <- NE.last . body <$> lookupStack f
     getType b
+getType _ = undefined
 
 binaryAnalysis :: BinOp -> (Type -> Type -> SemanticsM Type)
 binaryAnalysis Add = add'

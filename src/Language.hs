@@ -59,7 +59,9 @@ gclKeywords :: [String]
 gclKeywords =
     [ "proc"
     , "begin"
+    , "talbegin"
     , "end"
+    , "talend"
     , "do"
     , "od"
     , "if"

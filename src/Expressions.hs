@@ -5,6 +5,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Text.Lazy (Text)
 import Data.Word (Word32)
 import GHC.Arr (Array)
+import TAL (TalBlock)
 
 {- A program is a list of procedures -}
 type Program = [Proc]
@@ -75,6 +76,7 @@ data Expr
     | AppE Text [Expr]
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
+    | TalAsm TalBlock
     deriving (Show)
 
 data Value

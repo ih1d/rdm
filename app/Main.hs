@@ -3,7 +3,6 @@ module Main where
 import Control.Monad (when)
 import Data.Text.Lazy.IO (readFile)
 import Parser (parser)
-import Semantics
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
 import Prelude hiding (readFile)
@@ -16,13 +15,7 @@ run f = do
         exitFailure
     contents <- readFile f
     case parser contents of
-        Right program -> do
-            print program
-            st <- initStack
-            semEv <- runSemantics st (analyzeProgram program)
-            case semEv of
-                Right _ -> exitSuccess
-                Left err -> print err >> exitFailure
+        Right program -> print program >> exitSuccess
         Left err -> print err >> exitFailure
 
 main :: IO ()
