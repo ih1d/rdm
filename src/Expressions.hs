@@ -76,7 +76,7 @@ data Expr
     | AppE Text [Expr]
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
-    | TalAsm TalBlock
+    | TalAsm (NonEmpty TalBlock)
     deriving (Show)
 
 data Value

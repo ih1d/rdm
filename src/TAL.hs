@@ -1,12 +1,11 @@
 module TAL where
 
-import Data.List.NonEmpty (NonEmpty)
 import Data.Text.Lazy (Text)
 
 {- TAL block
  - embedded typed assembly block
 -}
-newtype TalInstr = TalInstr { talBlock :: Asm }
+newtype TalBlock = TalBlock { talBlock :: Asm }
     deriving (Show)
 
 type Asm = (Text, [(Register, TalType)], [Instruction])

@@ -287,8 +287,9 @@ gclArrayExpr = do
 gclExpr :: Parser Expr
 gclExpr = try gclAppExpr <|> try gclArrayExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
 
+-- parse a tal instruction
 gclTalInstruction :: Parser TalBlock
-gclTalInstruction = undefined
+gclTalInstruction = undefined -- gclTalLabeled <|> gclTalAsm
 
 -- parse a tal block
 gclTalBlock :: Parser Expr
