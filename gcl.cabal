@@ -27,6 +27,8 @@ library
         Expressions
         SemanticsMonad
         Error
+        MMIX
+        MIX
     default-extensions:
         ImportQualifiedPost
     build-depends:    base >=4 && <5
