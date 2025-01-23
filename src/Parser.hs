@@ -15,11 +15,11 @@ import Expressions
 import Language
 import Text.Parsec (
     ParseError,
-    anyChar,
     char,
     choice,
     many,
     many1,
+    digit,
     oneOf,
     optionMaybe,
     parse,
@@ -455,7 +455,7 @@ gclAsmInstr = do
             else do
                 instr <- gclIdentifier
                 pure (Just label, instr)
-    addr <- gclLexeme (pack <$> many1 anyChar)
+    addr <- (gclLexeme (pack <$> many1 digit)) <|> gclIdentifier
     pure (mlabel, instr, addr)
 
 -- parse an (m)mix block
@@ -514,11 +514,11 @@ parseProc = do
 parseProg :: Bool -> Parser Program
 parseProg False = do
     procedures <- many1 parseProc
-    pure $ Program procedures []
+    pure $ Program procedures Nothing
 parseProg True = do
-    asms <- many1 parseAsmBlock
+    asm <- parseAsmBlock
     procedures <- many1 parseProc
-    pure $ Program procedures asms 
+    pure $ Program procedures (Just asm)
 
 parser :: Text -> Bool -> Either ParseError Program
 parser input flag = parse (parseProg flag) "gcl" input

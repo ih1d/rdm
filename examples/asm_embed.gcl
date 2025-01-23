@@ -3,14 +3,15 @@ asm max
     X       EQU     1000
             ORIG    3000
     MAXIMUM STJ     EXIT
-            ENT3    0,1
+            ENT3    10
             JMP     CHANGEM
-    LOOP    CMPA    X,3
-            JGE     *+3
-    CHANGEM ENT2    0,3
-            LDA     X,3
+    LOOP    CMPA    103
+            JGE     3
+    CHANGEM ENT2    103
+            LDA     103
             DEC3    1
             J3P     LOOP
+    EXIT    JMP     8
 }
 
 proc main()

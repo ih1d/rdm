@@ -9,14 +9,14 @@ import GHC.Arr (Array)
 {- A program is a list of procedures, and of assembly blocks -}
 data Program = Program
     { procBlocks :: [Proc]
-    , asmBlocks :: [AsmBlock]
+    , asmBlock :: Maybe AsmBlock
     }
     deriving (Show)
 
 -- an assembly block is:
 data AsmBlock = AsmBlock
     { blockName :: Text
-    , asm :: [AsmInstr]
+    , block :: [AsmInstr]
     }
     deriving (Show)
 
