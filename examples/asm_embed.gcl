@@ -1,14 +1,22 @@
+asm max 
+{
+    X       EQU     1000
+            ORIG    3000
+    MAXIMUM STJ     EXIT
+            ENT3    0,1
+            JMP     CHANGEM
+    LOOP    CMPA    X,3
+            JGE     *+3
+    CHANGEM ENT2    0,3
+            LDA     X,3
+            DEC3    1
+            J3P     LOOP
+}
+
 proc main()
+var x, y : i64
 begin
-    talbegin
-        prod: 
-            r3 := 0;
-            jump loop
-        loop:
-            if r1 jump done;
-            r3 := r2 + r3;
-            r1 := r1 + -1;
-            jump loop
-        done: jump r9
-    talend.
+    x := 12
+    y := x * 2
+    y - 2
 end.

@@ -5,10 +5,23 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Text.Lazy (Text)
 import Data.Word (Word32)
 import GHC.Arr (Array)
-import TAL (TalBlock)
 
-{- A program is a list of procedures -}
-type Program = [Proc]
+{- A program is a list of procedures, and of assembly blocks -}
+data Program = Program
+    { procBlocks :: [Proc]
+    , asmBlocks :: [AsmBlock]
+    }
+    deriving (Show)
+
+-- an assembly block is:
+data AsmBlock = AsmBlock
+    { blockName :: Text
+    , asm :: [AsmInstr]
+    }
+    deriving (Show)
+
+-- an assembly instruction is:
+type AsmInstr = ((Maybe Text), Text, Text)
 
 {- Procedure
  - consists of name,
@@ -76,7 +89,6 @@ data Expr
     | AppE Text [Expr]
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
-    | TalAsm (NonEmpty TalBlock)
     deriving (Show)
 
 data Value

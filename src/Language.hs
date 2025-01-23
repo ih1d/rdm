@@ -37,7 +37,6 @@ gclOps =
     , ":="
     , "->"
     , "==>"
-    , "->"
     , "~"
     , "/\\"
     , "\\/"
@@ -59,9 +58,8 @@ gclKeywords :: [String]
 gclKeywords =
     [ "proc"
     , "begin"
-    , "talbegin"
+    , "asm"
     , "end"
-    , "talend"
     , "do"
     , "od"
     , "if"

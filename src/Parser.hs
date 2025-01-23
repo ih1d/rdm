@@ -12,10 +12,10 @@ import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (Text, pack)
 import Data.Word (Word32)
 import Expressions
-import TAL
 import Language
 import Text.Parsec (
     ParseError,
+    anyChar,
     char,
     choice,
     many,
@@ -287,21 +287,187 @@ gclArrayExpr = do
 gclExpr :: Parser Expr
 gclExpr = try gclAppExpr <|> try gclArrayExpr <|> gclIfExpr <|> gclDoExpr <|> gclTerms
 
--- parse a tal instruction
-gclTalInstruction :: Parser TalBlock
-gclTalInstruction = undefined -- gclTalLabeled <|> gclTalAsm
+mixKeywords :: [Text]
+mixKeywords =
+    [ "NOP"
+    , "ADD"
+    , "FADD"
+    , "SUB"
+    , "FSUB"
+    , "MUL"
+    , "FMUL"
+    , "DIV"
+    , "FDIV"
+    , "NUM"
+    , "CHAR"
+    , "HLT"
+    , "SLA"
+    , "SRA"
+    , "SLAX"
+    , "SRAX"
+    , "SLC"
+    , "SRC"
+    , "MOVE"
+    , "LDA"
+    , "LD1"
+    , "LD2"
+    , "LD3"
+    , "LD4"
+    , "LD5"
+    , "LD6"
+    , "LDX"
+    , "LDAN"
+    , "LD1N"
+    , "LD2N"
+    , "LD3N"
+    , "LD4N"
+    , "LD5N"
+    , "LD6N"
+    , "LDXN"
+    , "STA"
+    , "ST1"
+    , "ST2"
+    , "ST3"
+    , "ST4"
+    , "ST5"
+    , "ST6"
+    , "STX"
+    , "STJ"
+    , "STZ"
+    , "JBUS"
+    , "IOC"
+    , "IN"
+    , "OUT"
+    , "JRED"
+    , "JMP"
+    , "JSJ"
+    , "JOV"
+    , "JNOV"
+    , "JLE"
+    , "JE"
+    , "JG"
+    , "JGE"
+    , "JNE"
+    , "JLE"
+    , "JAN"
+    , "JAZ"
+    , "JAP"
+    , "JANN"
+    , "JANZ"
+    , "JANP"
+    , "J1N"
+    , "J1Z"
+    , "J1P"
+    , "J1NN"
+    , "J1NZ"
+    , "J1NP"
+    , "J2N"
+    , "J2Z"
+    , "J2P"
+    , "J2NN"
+    , "J2NZ"
+    , "J2NP"
+    , "J3N"
+    , "J3Z"
+    , "J3P"
+    , "J3NN"
+    , "J3NZ"
+    , "J3NP"
+    , "J4N"
+    , "J4Z"
+    , "J4P"
+    , "J4NN"
+    , "J4NZ"
+    , "J4NP"
+    , "J5N"
+    , "J5Z"
+    , "J5P"
+    , "J5NN"
+    , "J5NZ"
+    , "J5NP"
+    , "J6N"
+    , "J6Z"
+    , "J6P"
+    , "J6NN"
+    , "J6NZ"
+    , "J6NP"
+    , "JXN"
+    , "JXZ"
+    , "JXP"
+    , "JXNN"
+    , "JXNZ"
+    , "JXNP"
+    , "INCA"
+    , "DECA"
+    , "ENTA"
+    , "ENNA"
+    , "INC1"
+    , "DEC1"
+    , "ENT1"
+    , "ENN1"
+    , "INC2"
+    , "DEC2"
+    , "ENT2"
+    , "ENN2"
+    , "INC3"
+    , "DEC3"
+    , "ENT3"
+    , "ENN3"
+    , "INC4"
+    , "DEC4"
+    , "ENT4"
+    , "ENN4"
+    , "INC5"
+    , "DEC5"
+    , "ENT5"
+    , "ENN5"
+    , "INC6"
+    , "DEC6"
+    , "ENT6"
+    , "ENN6"
+    , "INCX"
+    , "DECX"
+    , "ENTX"
+    , "ENNX"
+    , "CMPA"
+    , "FCMP"
+    , "CMP1"
+    , "CMP2"
+    , "CMP3"
+    , "CMP4"
+    , "CMP5"
+    , "CMP6"
+    , "CMPX"
+    , "ORIG"
+    , "EQU"
+    , "CON"
+    , "ALF"
+    , "END"   
+    ] 
 
--- parse a tal block
-gclTalBlock :: Parser Expr
-gclTalBlock = do
-    gclReserved "talbegin"
-    minstrs <- many1 gclTalInstruction
-    instrs <- 
-        case nonEmpty minstrs of
-            Nothing -> error "failed to parse tal block"
-            Just instr -> pure instr
-    gclReserved "talend"
-    pure $ TalAsm instrs
+-- parse an (m)mix instruction
+gclAsmInstr :: Parser (Maybe Text, Text, Text)
+gclAsmInstr = do
+    label <- gclIdentifier
+    (mlabel, instr) <- 
+        if label `elem` mixKeywords 
+            then pure (Nothing, label) 
+            else do
+                instr <- gclIdentifier
+                pure (Just label, instr)
+    addr <- gclLexeme (pack <$> many1 anyChar)
+    pure (mlabel, instr, addr)
+
+-- parse an (m)mix block
+parseAsmBlock :: Parser AsmBlock
+parseAsmBlock = do
+    gclReserved "asm"
+    bname <- gclIdentifier
+    void $ gclLexeme (char '{')
+    instrs <- many1 gclAsmInstr
+    void $ gclLexeme (char '}')
+    pure $ AsmBlock bname instrs
+
 -- parse local variables
 parseLocalVariables :: Parser [(Text, Type)]
 parseLocalVariables = do
@@ -344,8 +510,15 @@ parseProc = do
     void $ gclLexeme (char '.')
     pure $ Proc pname fparams mlocal exprs
 
-parseProg :: Parser Program
-parseProg = many1 parseProc
+-- parse a program
+parseProg :: Bool -> Parser Program
+parseProg False = do
+    procedures <- many1 parseProc
+    pure $ Program procedures []
+parseProg True = do
+    asms <- many1 parseAsmBlock
+    procedures <- many1 parseProc
+    pure $ Program procedures asms 
 
-parser :: Text -> Either ParseError Program
-parser = parse parseProg "gcl"
+parser :: Text -> Bool -> Either ParseError Program
+parser input flag = parse (parseProg flag) "gcl" input
