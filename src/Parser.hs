@@ -23,24 +23,24 @@ import Text.Parsec.Expr (Assoc (..), Operator (..), OperatorTable, buildExpressi
 import Text.Parsec.Text.Lazy (Parser)
 import Text.Parsec.Token (
     GenTokenParser (..),
-    parens,
  )
 
 -- parser helpers --
 rccIdentifier :: Parser Text
 rccIdentifier = pack <$> rccLexeme (identifier rccLexer)
 
+{-
 rccInt :: Parser Int
 rccInt = fromInteger <$> integer rccLexer
 
 rccParens :: Parser a -> Parser a
 rccParens = parens rccLexer
-
+-}
 rccReserved :: String -> Parser ()
 rccReserved = reserved rccLexer
 
-rccSemiSep :: Parser a -> Parser [a]
-rccSemiSep = semiSep rccLexer
+-- rccSemiSep :: Parser a -> Parser [a]
+-- rccSemiSep = semiSep rccLexer
 
 rccCommaSep :: Parser a -> Parser [a]
 rccCommaSep = commaSep rccLexer
