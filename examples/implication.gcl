@@ -1,4 +1,0 @@
-proc impl(p, q : bool)
-begin
-    p ==> q
-end.

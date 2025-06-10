@@ -1,7 +1,0 @@
-proc example3(x, y : i64)
-var v, w : i64
-begin
-    v := 16
-    w := v ** v
-    x := w + y 
-end.

@@ -1,7 +1,0 @@
-proc toten()
-var ten : i64
-begin
-    do ten < 11 ->
-        ten := ten + 1
-    od
-end.

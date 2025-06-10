@@ -1,5 +1,5 @@
 module Language (
-    gclLexer,
+    rccLexer,
 ) where
 
 import Control.Monad.Identity (Identity)

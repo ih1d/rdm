@@ -1,9 +1,0 @@
-proc print(s : str)
-begin
-    s
-end.
-
-proc main()
-begin
-    print("Hello World!")
-end.
