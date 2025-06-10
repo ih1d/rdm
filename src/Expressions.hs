@@ -33,13 +33,15 @@ data Type = BoolT
  - unary operator
 -}
 data Expr
-    = BoolE Bool
+    = IdE Text
+    | BoolE Bool
+    | Universal Text Expr
+    | Existential Text Expr
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
     deriving (Show)
 
-data Value
-    = BoolV Bool
+data Value = BoolV Bool
     deriving (Show, Eq)
 
 {- Binary operators -}
@@ -51,8 +53,5 @@ data BinOp
     deriving (Show)
 
 {- Unary operators -}
-data UnOp
-    = Not
-    | Universal
-    | Existential
+data UnOp = Not
     deriving (Show)
