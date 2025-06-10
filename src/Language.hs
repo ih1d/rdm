@@ -11,8 +11,8 @@ import Text.Parsec.Token (
     makeTokenParser,
  )
 
-gclDef :: GenLanguageDef Text st Identity
-gclDef =
+rccDef :: GenLanguageDef Text st Identity
+rccDef =
     LanguageDef
         { commentStart = "/*"
         , commentEnd = "*/"
@@ -20,63 +20,29 @@ gclDef =
         , nestedComments = True
         , identStart = letter
         , identLetter = alphaNum <|> char '_'
-        , opStart = opLetter gclDef
+        , opStart = opLetter rccDef
         , opLetter = oneOf ":!#$%&*+./<=>?@\\^|-~"
-        , reservedOpNames = gclOps
-        , reservedNames = gclKeywords
+        , reservedOpNames = rccOps
+        , reservedNames = rccKeywords
         , caseSensitive = True
         }
 
-gclOps :: [String]
-gclOps =
-    [ "="
-    , "~="
-    , ":"
-    , "|"
-    , "||"
-    , ":="
-    , "->"
+rccOps :: [String]
+rccOps =
+    [ "=="
     , "==>"
     , "~"
     , "/\\"
     , "\\/"
-    , "^"
-    , ">="
-    , ">"
-    , "<="
-    , "<"
-    , "+"
-    , "-"
-    , "*"
-    , "/"
-    , "%"
-    , "**"
-    , "#"
+    , "!"
+    , "?"
     ]
 
-gclKeywords :: [String]
-gclKeywords =
-    [ "proc"
-    , "begin"
-    , "asm"
-    , "end"
-    , "do"
-    , "od"
-    , "if"
-    , "fi"
-    , "array"
-    , "of"
-    , "true"
+rccKeywords :: [String]
+rccKeywords =
+    [ "true"
     , "false"
-    , "var"
-    , "bool"
-    , "i64"
-    , "i32"
-    , "u64"
-    , "u32"
-    , "chr"
-    , "str"
     ]
 
-gclLexer :: GenTokenParser Text st Identity
-gclLexer = makeTokenParser gclDef
+rccLexer :: GenTokenParser Text st Identity
+rccLexer = makeTokenParser rccDef

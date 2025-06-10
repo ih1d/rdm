@@ -1,34 +1,17 @@
 module Main where
 
-import Control.Monad (when)
-import Data.Text.Lazy.IO (readFile)
+import Data.Text.Lazy.IO (getLine)
 import Parser (parser)
-import System.Environment (getArgs)
-import System.Exit (exitFailure, exitSuccess)
-import Prelude hiding (readFile)
+import System.IO (BufferMode (..), hSetBuffering, stdout)
+import Prelude hiding (getLine)
 
-run :: FilePath -> Bool -> IO ()
-run f t = do
-    let ext = reverse $ take 3 $ reverse f
-    when (ext /= "gcl") $ do
-        putStrLn "expected file extension gcl"
-        putStrLn "Usage: gcl [-t|--transpile] FILE" 
-        exitFailure
-    contents <- readFile f
-    case parser contents t of
-        Right program -> print program >> exitSuccess
-        Left err -> print err >> exitFailure
+repl :: IO ()
+repl = do
+    putStr "rcc> "
+    l <- getLine
+    case parser l of
+        Left _ -> undefined
+        Right ast -> print ast >> repl
 
 main :: IO ()
-main = do
-    args <- getArgs
-    case args of
-        [t, f] -> 
-            if t == "-t" || t == "--transpile" 
-                then run f True
-                else do
-                    putStrLn $ "Flag " ++ t ++ " unrecognizable"
-                    putStrLn "Usage: gcl [-t|--transpile] FILE" 
-                    exitFailure
-        [f] -> run f False
-        _ -> putStrLn "Usage: gcl [-t|--transpile] FILE" >> exitFailure
+main = hSetBuffering stdout NoBuffering >> repl

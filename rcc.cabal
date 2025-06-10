@@ -21,11 +21,9 @@ library
         warnings
     exposed-modules:
         Parser
-        Semantics
     other-modules:
         Language
         Expressions
-        SemanticsMonad
         Error
     default-extensions:
         ImportQualifiedPost
