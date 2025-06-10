@@ -24,7 +24,8 @@ data Proc = Proc
 {- Types
  - booleans
  -}
-data Type = BoolT
+data Type
+    = BoolT
     deriving (Eq, Show)
 
 {- An expression is:
@@ -35,13 +36,21 @@ data Type = BoolT
 data Expr
     = IdE Text
     | BoolE Bool
-    | Universal Text Expr
-    | Existential Text Expr
+    | UniversalE Text Expr
+    | ExistentialE Text Expr
     | BinOpE BinOp Expr Expr
     | UnaryOpE UnOp Expr
     deriving (Show)
 
-data Value = BoolV Bool
+data Stmt
+    = Sequential Stmt Stmt
+    | Skip
+    | If Expr Stmt Stmt
+    | Do Expr [Stmt]
+    deriving (Show)
+
+data Value
+    = BoolV Bool
     deriving (Show, Eq)
 
 {- Binary operators -}
@@ -50,6 +59,8 @@ data BinOp
     | Impl
     | And
     | Or
+    | GtEq
+    | LeEq
     deriving (Show)
 
 {- Unary operators -}

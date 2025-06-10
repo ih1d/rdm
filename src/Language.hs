@@ -36,12 +36,19 @@ rccOps =
     , "\\/"
     , "!"
     , "?"
+    , ";"
     ]
 
 rccKeywords :: [String]
 rccKeywords =
     [ "true"
     , "false"
+    , "in"
+    , "if"
+    , "then"
+    , "else"
+    , "fi"
+    , "skip"
     ]
 
 rccLexer :: GenTokenParser Text st Identity

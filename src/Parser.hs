@@ -109,7 +109,7 @@ rccTerms = buildExpressionParser table rccTermExpr
 rccQuantifierxpr :: Parser Expr
 rccQuantifierxpr = do
     void $ rccLexeme (char '(')
-    func <- (Existential <$ rccLexeme (char '?')) <|> (Universal <$ rccLexeme (char '!'))
+    func <- (ExistentialE <$ rccLexeme (char '?')) <|> (UniversalE <$ rccLexeme (char '!'))
     ident <- rccIdentifier
     void $ rccLexeme (char '.')
     expr <- rccExpr
@@ -120,5 +120,31 @@ rccQuantifierxpr = do
 rccExpr :: Parser Expr
 rccExpr = rccQuantifierxpr <|> rccTerms
 
-parser :: Text -> Either ParseError Expr
-parser = parse rccExpr "rcc"
+-- parse a sequential
+rccSeqStmt :: Parser Stmt
+rccSeqStmt = do
+    s <- rccStmts
+    void $ rccLexeme (char ';')
+    Sequential s <$> rccStmts
+
+-- parse skip statment
+rccSkipStmt :: Parser Stmt
+rccSkipStmt = Skip <$ rccReserved "skip"
+
+-- parse an if stmt
+rccIfStmt :: Parser Stmt
+rccIfStmt = do
+    rccReserved "if"
+    g <- rccExpr
+    rccReserved "then"
+    s <- rccStmts
+    rccReserved "else"
+    t <- rccStmts
+    rccReserved "fi"
+    pure $ If g s t
+
+rccStmts :: Parser Stmt
+rccStmts = rccIfStmt <|> rccSeqStmt <|> rccSkipStmt
+
+parser :: Text -> Either ParseError Stmt
+parser = parse rccStmts "rcc"

@@ -29,6 +29,7 @@ library
         ImportQualifiedPost
         OverloadedStrings
     build-depends:    base
+                    , containers
                     , parsec
                     , transformers
                     , mtl
