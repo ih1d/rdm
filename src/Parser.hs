@@ -199,12 +199,12 @@ rccParameters = do
     pure typings
 
 -- parse a procedure
-rccProc :: Parser Proc
+rccProc :: Parser Program
 rccProc = do
-    rccReserved "procedure"
+    rccReserved "program"
     procedureName <- rccIdentifier
     params <- rccParameters
-    Proc procedureName params <$> many1 rccStmts
+    Program procedureName params <$> many1 rccStmts
 
-parser :: Text -> Either ParseError Proc
+parser :: Text -> Either ParseError Program
 parser = parse rccProc "rcc"

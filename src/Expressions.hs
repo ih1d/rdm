@@ -2,18 +2,14 @@ module Expressions where
 
 import Data.Text.Lazy (Text)
 
-{- A program is a list of procedures -}
-newtype Program = Program {procBlocks :: [Proc]}
-    deriving (Show)
-
-{- Procedure
+{- Program
  - consists of name,
  - a list of parameters,
  - maybe local variables, and
  - body
 -}
-data Proc = Proc
-    { procName :: Text
+data Program = Program
+    { progName :: Text
     , parameters :: [(Text, Type)]
     , body :: [Stmt]
     }

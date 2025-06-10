@@ -44,7 +44,7 @@ rccOps =
 
 rccKeywords :: [String]
 rccKeywords =
-    [ "procedure"
+    [ "program"
     , "true"
     , "false"
     , "in"
