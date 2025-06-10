@@ -1,6 +1,5 @@
 module Expressions where
 
-import Data.List.NonEmpty (NonEmpty)
 import Data.Text.Lazy (Text)
 
 {- A program is a list of procedures -}
@@ -16,8 +15,7 @@ newtype Program = Program {procBlocks :: [Proc]}
 data Proc = Proc
     { procName :: Text
     , parameters :: [(Text, Type)]
-    , localVariables :: [(Text, Type)]
-    , body :: NonEmpty Expr
+    , body :: [Stmt]
     }
     deriving (Show)
 

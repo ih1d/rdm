@@ -1,6 +1,4 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use tuple-section" #-}
+{-# LANGUAGE TupleSections #-}
 
 module Parser (parser) where
 
@@ -185,5 +183,28 @@ rccStmt =
 rccStmts :: Parser Stmt
 rccStmts = rccStmt `chainl1` (rccLexeme (char ';') >> pure Sequential)
 
-parser :: Text -> Either ParseError Stmt
-parser = parse rccStmts "rcc"
+-- parse parameters
+rccVariableTyping :: Parser [(Text, Type)]
+rccVariableTyping = do
+    vars <- rccCommaSep rccIdentifier
+    rccReservedOp ":"
+    t <- rccType
+    pure $ map (,t) vars
+
+rccParameters :: Parser [(Text, Type)]
+rccParameters = do
+    void $ rccLexeme (char '(')
+    typings <- concat <$> rccCommaSep rccVariableTyping
+    void $ rccLexeme (char ')')
+    pure typings
+
+-- parse a procedure
+rccProc :: Parser Proc
+rccProc = do
+    rccReserved "procedure"
+    procedureName <- rccIdentifier
+    params <- rccParameters
+    Proc procedureName params <$> many1 rccStmts
+
+parser :: Text -> Either ParseError Proc
+parser = parse rccProc "rcc"
