@@ -37,6 +37,9 @@ rccOps =
     , "!"
     , "?"
     , ";"
+    , ":="
+    , "->"
+    , "|"
     ]
 
 rccKeywords :: [String]
@@ -49,6 +52,8 @@ rccKeywords =
     , "else"
     , "fi"
     , "skip"
+    , "do"
+    , "od"
     ]
 
 rccLexer :: GenTokenParser Text st Identity

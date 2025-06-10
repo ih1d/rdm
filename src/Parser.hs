@@ -11,11 +11,14 @@ import Expressions
 import Language
 import Text.Parsec (
     ParseError,
+    between,
+    chainl1,
     char,
     choice,
     many1,
     oneOf,
     parse,
+    try,
     (<|>),
  )
 import Text.Parsec.Expr (Assoc (..), Operator (..), OperatorTable, buildExpressionParser)
@@ -120,12 +123,12 @@ rccQuantifierxpr = do
 rccExpr :: Parser Expr
 rccExpr = rccQuantifierxpr <|> rccTerms
 
--- parse a sequential
-rccSeqStmt :: Parser Stmt
-rccSeqStmt = do
-    s <- rccStmts
-    void $ rccLexeme (char ';')
-    Sequential s <$> rccStmts
+-- parse an assigment
+rccAssignment :: Parser Stmt
+rccAssignment = do
+    ident <- rccIdentifier
+    rccReservedOp ":="
+    Assignment ident <$> rccExpr
 
 -- parse skip statment
 rccSkipStmt :: Parser Stmt
@@ -143,8 +146,44 @@ rccIfStmt = do
     rccReserved "fi"
     pure $ If g s t
 
+-- parse an assertion
+rccAssert :: Parser Stmt
+rccAssert = Assert <$> between (rccLexeme $ char '{') (rccLexeme $ char '}') rccExpr
+
+-- parse a generalised assigment
+rccGeneralAssignment :: Parser Stmt
+rccGeneralAssignment = do
+    assignment <- rccAssignment
+    rccReservedOp "|"
+    GeneralAssignment assignment <$> rccExpr
+
+-- parse an iteration
+rccDoStmt :: Parser Stmt
+rccDoStmt = do
+    rccReserved "do"
+    g <- rccExpr
+    rccReservedOp "->"
+    stmts <- many1 rccStmt
+    rccReserved "od"
+    pure $ Do g stmts
+
+rccSpecStmt :: Parser Stmt
+rccSpecStmt = Specification <$> rccAssert <*> rccGeneralAssignment
+
+-- parse a stmt
+rccStmt :: Parser Stmt
+rccStmt =
+    try rccSpecStmt
+        <|> try rccGeneralAssignment
+        <|> rccDoStmt
+        <|> rccIfStmt
+        <|> rccAssert
+        <|> rccSkipStmt
+        <|> rccAssignment
+
+-- parse multiple stmts
 rccStmts :: Parser Stmt
-rccStmts = rccIfStmt <|> rccSeqStmt <|> rccSkipStmt
+rccStmts = rccStmt `chainl1` (rccLexeme (char ';') >> pure Sequential)
 
 parser :: Text -> Either ParseError Stmt
 parser = parse rccStmts "rcc"

@@ -44,9 +44,13 @@ data Expr
 
 data Stmt
     = Sequential Stmt Stmt
+    | Assert Expr
+    | Assignment Text Expr
     | Skip
     | If Expr Stmt Stmt
     | Do Expr [Stmt]
+    | GeneralAssignment Stmt Expr
+    | Specification Stmt Stmt
     deriving (Show)
 
 data Value
