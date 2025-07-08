@@ -1,0 +1,6 @@
+Election_Database =
+    extend Database with
+    class 
+        value number : Database -> Nat
+        axiom forall db : Database :- number(db) is card db
+    end

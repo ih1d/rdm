@@ -4,7 +4,7 @@ import Data.Text.Lazy (Text, unpack)
 import Expressions
 
 data EvalError
-    = TypeError Type Type Text
+    = TypeError Declaration Declaration Text
     | UndeclaredVariable Text
     | RedeclaredVariable Text
     | UndeclaredProc Text

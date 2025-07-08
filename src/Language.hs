@@ -1,5 +1,5 @@
 module Language (
-    rccLexer,
+    rslLexer,
 ) where
 
 import Control.Monad.Identity (Identity)
@@ -11,51 +11,48 @@ import Text.Parsec.Token (
     makeTokenParser,
  )
 
-rccDef :: GenLanguageDef Text st Identity
-rccDef =
+rslDef :: GenLanguageDef Text st Identity
+rslDef =
     LanguageDef
         { commentStart = "/*"
         , commentEnd = "*/"
         , commentLine = "//"
         , nestedComments = True
         , identStart = letter
-        , identLetter = alphaNum <|> char '_'
-        , opStart = opLetter rccDef
+        , identLetter = alphaNum <|> char '_' <|> char '-'
+        , opStart = opLetter rslDef
         , opLetter = oneOf ":!#$%&*+./<=>?@\\^|-~"
-        , reservedOpNames = rccOps
-        , reservedNames = rccKeywords
+        , reservedOpNames = rslOps
+        , reservedNames = rslKeywords
         , caseSensitive = True
         }
 
-rccOps :: [String]
-rccOps =
-    [ "=="
-    , "==>"
-    , "~"
-    , "/\\"
-    , "\\/"
-    , "!"
-    , "?"
-    , ";"
-    , ":="
+rslOps :: [String]
+rslOps =
+    [ "="
+    , ":"
+    , "><"
+    , ":-"
     , "->"
-    , "|"
     ]
 
-rccKeywords :: [String]
-rccKeywords =
-    [ "program"
-    , "true"
-    , "false"
-    , "in"
-    , "if"
-    , "then"
-    , "else"
-    , "fi"
-    , "skip"
-    , "do"
-    , "od"
+rslKeywords :: [String]
+rslKeywords =
+    [ "class"
+    , "type"
+    , "value"
+    , "axiom"
+    , "is"
+    , "forall"
+    , "isin"
+    , "union"
+    , "end"
+    , "extend"
+    , "with"
+    , "card"
+    , "Nat"
+    , "Bool"
     ]
 
-rccLexer :: GenTokenParser Text st Identity
-rccLexer = makeTokenParser rccDef
+rslLexer :: GenTokenParser Text st Identity
+rslLexer = makeTokenParser rslDef

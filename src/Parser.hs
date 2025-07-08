@@ -1,55 +1,48 @@
-{-# LANGUAGE TupleSections #-}
-
 module Parser (parser) where
 
 import Control.Monad (void)
-import Data.Functor.Identity (Identity)
 import Data.Text.Lazy (Text, pack)
 import Expressions
 import Language
 import Text.Parsec (
     ParseError,
-    between,
-    chainl1,
-    char,
     choice,
     many1,
     oneOf,
+    optionMaybe,
     parse,
     try,
     (<|>),
  )
-import Text.Parsec.Expr (Assoc (..), Operator (..), OperatorTable, buildExpressionParser)
 import Text.Parsec.Text.Lazy (Parser)
 import Text.Parsec.Token (
     GenTokenParser (..),
  )
 
 -- parser helpers --
-rccIdentifier :: Parser Text
-rccIdentifier = pack <$> rccLexeme (identifier rccLexer)
+rslIdentifier :: Parser Text
+rslIdentifier = pack <$> rslLexeme (identifier rslLexer)
 
-{-
-rccInt :: Parser Int
-rccInt = fromInteger <$> integer rccLexer
+rslInt :: Parser Int
+rslInt = fromInteger <$> integer rslLexer
 
-rccParens :: Parser a -> Parser a
-rccParens = parens rccLexer
--}
-rccReserved :: String -> Parser ()
-rccReserved = reserved rccLexer
+rslParens :: Parser a -> Parser a
+rslParens = parens rslLexer
 
--- rccSemiSep :: Parser a -> Parser [a]
--- rccSemiSep = semiSep rccLexer
+rslReserved :: String -> Parser ()
+rslReserved = reserved rslLexer
 
-rccCommaSep :: Parser a -> Parser [a]
-rccCommaSep = commaSep rccLexer
+rslSemiSep :: Parser a -> Parser [a]
+rslSemiSep = semiSep rslLexer
 
-rccReservedOp :: String -> Parser ()
-rccReservedOp = reservedOp rccLexer
+rslCommaSep :: Parser a -> Parser [a]
+rslCommaSep = commaSep rslLexer
 
-rccLexeme :: Parser p -> Parser p
-rccLexeme p = p <* whitespace
+rslReservedOp :: String -> Parser ()
+rslReservedOp = reservedOp rslLexer
+
+rslLexeme :: Parser p -> Parser p
+rslLexeme p = p <* whitespace
 
 whitespace :: Parser ()
 whitespace =
@@ -62,149 +55,79 @@ whitespace =
 
 -- parser helpers --
 
--- parse a type
-rccType :: Parser Type
-rccType =
-    BoolT <$ rccReserved "bool"
+{- parse a binary operator
+rslBinaryOp :: String -> (a -> a -> a) -> Assoc -> Operator Text () Identity a
+rslBinaryOp txt f = Infix (rslReservedOp txt >> pure f)
 
--- parse a boolean value
-rccBoolExpr :: Parser Expr
-rccBoolExpr = do
-    boolVal <- rccLexeme (True <$ rccReserved "true") <|> (False <$ rccReserved "false")
-    pure $ BoolE boolVal
-
--- parse an identifier
-rccIdExpr :: Parser Expr
-rccIdExpr = IdE <$> rccIdentifier
-
--- parse an terminal expression
-rccTermExpr :: Parser Expr
-rccTermExpr = rccBoolExpr <|> rccIdExpr
-
--- parse a binary operator
-rccBinaryOp :: String -> (a -> a -> a) -> Assoc -> Operator Text () Identity a
-rccBinaryOp txt f = Infix (rccReservedOp txt >> pure f)
-
--- parse a unary operator
-rccUnaryOp :: String -> (a -> a) -> Operator Text () Identity a
-rccUnaryOp txt f = Prefix (rccReservedOp txt >> pure f)
+ parse a unary operator
+rslUnaryOp :: String -> (a -> a) -> Operator Text () Identity a
+rslUnaryOp txt f = Prefix (rslReservedOp txt >> pure f)
 
 table :: OperatorTable Text () Identity Expr
 table =
     [
-        [ rccUnaryOp "~" (UnaryOpE Not)
+        [ rslUnaryOp "~" (UnaryOpE Not)
         ]
     ,
-        [ rccBinaryOp "==" (BinOpE Equiv) AssocNone
+        [ rslBinaryOp "==" (BinOpE Equiv) AssocNone
         ]
-    , [rccBinaryOp "/\\" (BinOpE And) AssocRight]
-    , [rccBinaryOp "\\/" (BinOpE Or) AssocRight]
-    , [rccBinaryOp "==>" (BinOpE Impl) AssocRight]
+    , [rslBinaryOp "/\\" (BinOpE And) AssocRight]
+    , [rslBinaryOp "\\/" (BinOpE Or) AssocRight]
+    , [rslBinaryOp "==>" (BinOpE Impl) AssocRight]
     ]
+-}
 
--- parse term expressions
-rccTerms :: Parser Expr
-rccTerms = buildExpressionParser table rccTermExpr
+-- parse type declaration
+rslTypeDef :: Parser Declaration
+rslTypeDef = do
+    rslReserved "type"
+    TypeDecl <$> rslCommaSep (try rslTypeDefUnion <|> rslTypeDefSort)
 
--- parse existential quantifier
-rccQuantifierxpr :: Parser Expr
-rccQuantifierxpr = do
-    void $ rccLexeme (char '(')
-    func <- (ExistentialE <$ rccLexeme (char '?')) <|> (UniversalE <$ rccLexeme (char '!'))
-    ident <- rccIdentifier
-    void $ rccLexeme (char '.')
-    expr <- rccExpr
-    void $ rccLexeme (char ')')
-    pure $ func ident expr
+rslTypeDefUnion :: Parser TypeDef
+rslTypeDefUnion = do
+    t <- rslIdentifier
+    rslReservedOp "="
+    Union t <$> rslIdentifier
 
--- parse an expression
-rccExpr :: Parser Expr
-rccExpr = rccQuantifierxpr <|> rccTerms
+rslTypeDefSort :: Parser TypeDef
+rslTypeDefSort = Sort <$> rslIdentifier
 
--- parse an assigment
-rccAssignment :: Parser Stmt
-rccAssignment = do
-    ident <- rccIdentifier
-    rccReservedOp ":="
-    Assignment ident <$> rccExpr
+-- parse value declaration
+rslValueDef :: Parser ValueDef
+rslValueDef = do
+    rslReserved "value"
+    v <- rslIdentifier
+    rslReservedOp ":"
+    ValueDef v <$> (rslIdentifier <|> rslTypeExpr)
+  where
+    rslTypeExpr = do
+        t1 <- rslIdentifier
+        rslReservedOp "><"
+        t2 <- rslIdentifier
+        rslReservedOp "->"
+        t3 <- rslIdentifier <|> ("Nat" <$ rslReserved "Nat") <|> ("Bool" <$ rslReserved "Bool")
+        pure $ t1 <> t2 <> t3
 
--- parse skip statment
-rccSkipStmt :: Parser Stmt
-rccSkipStmt = Skip <$ rccReserved "skip"
+-- parse declarations
+rslDeclaration :: Parser Declaration
+rslDeclaration = rslTypeDef -- <|> rslValueDef <|> rslAxiomDef
 
--- parse an if stmt
-rccIfStmt :: Parser Stmt
-rccIfStmt = do
-    rccReserved "if"
-    g <- rccExpr
-    rccReserved "then"
-    s <- rccStmts
-    rccReserved "else"
-    t <- rccStmts
-    rccReserved "fi"
-    pure $ If g s t
+-- parse extension
+rslExtend :: Parser Text
+rslExtend = do
+    rslReserved "extend"
+    e <- rslIdentifier
+    rslReserved "with"
+    pure e
 
--- parse an assertion
-rccAssert :: Parser Stmt
-rccAssert = Assert <$> between (rccLexeme $ char '{') (rccLexeme $ char '}') rccExpr
+-- parse a class
+rslClass :: Parser Class
+rslClass = do
+    cname <- rslIdentifier
+    rslReservedOp "="
+    extension <- optionMaybe rslExtend
+    rslReserved "class"
+    Class cname extension <$> many1 rslDeclaration
 
--- parse a generalised assigment
-rccGeneralAssignment :: Parser Stmt
-rccGeneralAssignment = do
-    assignment <- rccAssignment
-    rccReservedOp "|"
-    GeneralAssignment assignment <$> rccExpr
-
--- parse an iteration
-rccDoStmt :: Parser Stmt
-rccDoStmt = do
-    rccReserved "do"
-    g <- rccExpr
-    rccReservedOp "->"
-    stmts <- many1 rccStmt
-    rccReserved "od"
-    pure $ Do g stmts
-
-rccSpecStmt :: Parser Stmt
-rccSpecStmt = Specification <$> rccAssert <*> rccGeneralAssignment
-
--- parse a stmt
-rccStmt :: Parser Stmt
-rccStmt =
-    try rccSpecStmt
-        <|> try rccGeneralAssignment
-        <|> rccDoStmt
-        <|> rccIfStmt
-        <|> rccAssert
-        <|> rccSkipStmt
-        <|> rccAssignment
-
--- parse multiple stmts
-rccStmts :: Parser Stmt
-rccStmts = rccStmt `chainl1` (rccLexeme (char ';') >> pure Sequential)
-
--- parse parameters
-rccVariableTyping :: Parser [(Text, Type)]
-rccVariableTyping = do
-    vars <- rccCommaSep rccIdentifier
-    rccReservedOp ":"
-    t <- rccType
-    pure $ map (,t) vars
-
-rccParameters :: Parser [(Text, Type)]
-rccParameters = do
-    void $ rccLexeme (char '(')
-    typings <- concat <$> rccCommaSep rccVariableTyping
-    void $ rccLexeme (char ')')
-    pure typings
-
--- parse a procedure
-rccProc :: Parser Program
-rccProc = do
-    rccReserved "program"
-    procedureName <- rccIdentifier
-    params <- rccParameters
-    Program procedureName params <$> many1 rccStmts
-
-parser :: Text -> Either ParseError Program
-parser = parse rccProc "rcc"
+parser :: Text -> Either ParseError Class
+parser = parse rslClass "rsl"
