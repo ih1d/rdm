@@ -52,6 +52,17 @@ rslKeywords =
     , "card"
     , "Nat"
     , "Bool"
+    , "Int"
+    , "Real"
+    , "Char"
+    , "Text"
+    , "Unit"
+    , "true"
+    , "false"
+    , "if"
+    , "then"
+    , "else"
+    , "elsif"
     ]
 
 rslLexer :: GenTokenParser Text st Identity

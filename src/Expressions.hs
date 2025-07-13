@@ -37,13 +37,15 @@ data ValueDef = ValueDef
 
 type TypeExpr = Text
 
-type ValueExpr = Text
+data ValueExpr = IfE Text Text [(Text, Text)] Text
+    deriving (Show)
 
 -- Axiom Defintion
 -- defines a list of value expressions, and
 -- maybe an optional naming
 data AxiomDef = AxiomDef
-    { valueExprs :: ValueExpr
-    , optAxiomName :: Text
+    { axiomId :: Text
+    , valueExprs :: ValueExpr
+    , optAxiomName :: Maybe Text
     }
     deriving (Show)

@@ -6,11 +6,15 @@ import Expressions
 import Language
 import Text.Parsec (
     ParseError,
+    between,
+    char,
     choice,
+    many,
     many1,
     oneOf,
     optionMaybe,
     parse,
+    string,
     try,
     (<|>),
  )
@@ -77,9 +81,30 @@ table =
     ]
 -}
 
+-- parse if expr
+parseIfExpr :: Parser ValueExpr
+parseIfExpr = do
+    rslReserved "if"
+    cond <- rslLexeme $ pack <$> string "x < 0"
+    rslReserved "then"
+    thn <- rslLexeme $ pack <$> string "x + 1"
+    conds <- many parseConds
+    rslReserved "else"
+    els <- rslLexeme $ pack <$> string "0"
+    rslReserved "end"
+    pure $ IfE cond thn conds  els
+  where
+    parseConds :: Parser (Text, Text)
+    parseConds = do
+        rslReserved "elsif"
+        cond <- rslLexeme $ pack <$> string "x > 0"
+        rslReserved "then"
+        thn <- rslLexeme $ pack <$> string "x + 1"
+        pure (cond, thn)
+
 -- parse type declaration
-rslTypeDef :: Parser Declaration
-rslTypeDef = do
+rslTypeDecl :: Parser Declaration
+rslTypeDecl = do
     rslReserved "type"
     TypeDecl <$> rslCommaSep (try rslTypeDefUnion <|> rslTypeDefSort)
 
@@ -93,24 +118,42 @@ rslTypeDefSort :: Parser TypeDef
 rslTypeDefSort = Sort <$> rslIdentifier
 
 -- parse value declaration
-rslValueDef :: Parser ValueDef
-rslValueDef = do
+rslValueDecl :: Parser Declaration
+rslValueDecl = do
     rslReserved "value"
-    v <- rslIdentifier
-    rslReservedOp ":"
-    ValueDef v <$> (rslIdentifier <|> rslTypeExpr)
+    ValueDecl <$> rslCommaSep (try complexValueDef <|> simpleValueDef)
   where
-    rslTypeExpr = do
+    simpleValueDef = do
+        v <- rslIdentifier
+        rslReservedOp ":"
+        ValueDef v <$> rslIdentifier
+    complexValueDef = do
+        v <- rslIdentifier
+        rslReservedOp ":"
         t1 <- rslIdentifier
         rslReservedOp "><"
         t2 <- rslIdentifier
         rslReservedOp "->"
         t3 <- rslIdentifier <|> ("Nat" <$ rslReserved "Nat") <|> ("Bool" <$ rslReserved "Bool")
-        pure $ t1 <> t2 <> t3
+        pure $ ValueDef v (t1 <> t2 <> t3)
+
+-- parse axiom declarations
+rslAxiomDecl :: Parser Declaration
+rslAxiomDecl = do
+    rslReserved "axiom"
+    AxiomDecl <$> rslCommaSep simpleValueExpr
+  where
+    axiomHeading = between (char '[') (char ']') rslIdentifier
+    simpleValueExpr = do
+        h <- optionMaybe axiomHeading
+        ident <- rslIdentifier
+        rslReserved "is"
+        i <- parseIfExpr
+        pure $ AxiomDef ident i h
 
 -- parse declarations
 rslDeclaration :: Parser Declaration
-rslDeclaration = rslTypeDef -- <|> rslValueDef <|> rslAxiomDef
+rslDeclaration = rslTypeDecl <|> rslValueDecl <|> rslAxiomDecl
 
 -- parse extension
 rslExtend :: Parser Text
@@ -127,7 +170,9 @@ rslClass = do
     rslReservedOp "="
     extension <- optionMaybe rslExtend
     rslReserved "class"
-    Class cname extension <$> many1 rslDeclaration
+    decls <- many1 rslDeclaration
+    rslReserved "end"
+    pure $ Class cname extension decls
 
 parser :: Text -> Either ParseError Class
 parser = parse rslClass "rsl"
